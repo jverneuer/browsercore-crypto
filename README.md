@@ -5,63 +5,54 @@
 [![coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jverneuer/browsercore-crypto/main/coverage/badge.json)](https://github.com/jverneuer/browsercore-crypto/blob/main/COVERAGE.md)
 [![lint](https://img.shields.io/github/actions/workflow/status/jverneuer/browsercore-crypto/ci.yml?label=lint)](https://github.com/jverneuer/browsercore-crypto/actions/workflows/ci.yml)
 
-A clean abstraction wrapping Node's native crypto APIs. Higher layers — especially
-TLS — call these methods so the crypto backend is replaceable.
+Cryptographic primitives for the browsercore stack: secure randomness, hashing
+(SHA-256/384), HKDF (RFC 5869), AEAD (AES-128-GCM, AES-256-GCM, ChaCha20-Poly1305),
+X25519 key exchange, and signature verification. Higher layers — especially TLS —
+compose exclusively through the `CryptoProvider` interface, so the backend is
+replaceable (WebCrypto, HSM, test double) and never calls `node:crypto` directly.
 
-## Responsibility
+## Install
 
-Provide cryptographic primitives: secure randomness, hashing (SHA-256/384), HKDF
-extract+expand per RFC 5869, AEAD (AES-128-GCM, AES-256-GCM, ChaCha20-Poly1305),
-and X25519 key exchange. All I/O-free and unit-testable.
+```bash
+npm install @browsercore/crypto
+```
 
-## What it does NOT know about
+## Quick usage
 
-- TLS handshakes, key schedules, or wire formats
-- HTTP (any version)
-- Browser fingerprints
-- Cookies
+```ts
+import { crypto, NodeCryptoProvider } from "@browsercore/crypto";
 
-Higher layers compose exclusively through the `CryptoProvider` interface. The
-production TLS implementation **never** calls `node:crypto` directly — it calls
-`crypto.hkdf(...)`, `crypto.encrypt(...)`, etc. This makes the backend swappable
-(WebCrypto, HSM, test double).
+// Default singleton, backed by node:crypto:
+const key = crypto.randomBytes(32);
+const digest = crypto.sha256(key);
+const ok = crypto.verifySignature("ecdsa_secp256r1_sha256", pubkey, sig, message);
+
+// Or inject a custom provider (e.g. for tests):
+const provider = new NodeCryptoProvider();
+const shared = provider.x25519SharedSecret(mySecret, theirPublic);
+```
 
 ## Public API
 
-```ts
-import { crypto, NodeCryptoProvider, CryptoProvider } from "@browsercore/crypto";
-
-// Use the default singleton (backed by node:crypto):
-const key = crypto.randomBytes(32);
-const digest = crypto.sha256(key);
-
-// Or inject a custom provider (e.g. for tests):
-const provider: CryptoProvider = new NodeCryptoProvider();
-const bytes = provider.randomBytes(16);
-```
-
-## Types
-
 | Export | Kind | Purpose |
 | --- | --- | --- |
+| `crypto` | singleton | Default `CryptoProvider` backend |
 | `CryptoProvider` | interface | Pure crypto primitive abstraction higher layers depend on |
 | `NodeCryptoProvider` | class | `node:crypto`-backed implementation |
-| `crypto` | singleton | Default backend higher layers call into |
+| `aes128Gcm` / `aes256Gcm` / `chacha20Poly1305` | `AeadCipher` | Concrete AEAD descriptors (sizes + encrypt/decrypt) |
+| `CIPHER_BY_ID` | record | Every `SymmetricCipherId` mapped to its `AeadCipher` |
+| `ensureCryptoError()` | function | Narrow a caught error to a typed crypto error, or wrap it |
+| `createCryptoSessionId()` | function | Branded session-id generator |
 | `AeadCipher` | interface | Static AEAD parameters + encrypt/decrypt |
-| `SymmetricCipherId` | discriminated union | `AES-128-GCM \| AES-256-GCM \| ChaCha20-Poly1305` |
-| `HashId` | discriminated union | `SHA-256 \| SHA-384` |
-| `KeyExchangeId` | discriminated union | `X25519` |
+| `SymmetricCipherId` | union | `AES-128-GCM \| AES-256-GCM \| ChaCha20-Poly1305` |
+| `HashId` | union | `SHA-256 \| SHA-384` |
+| `KeyExchangeId` | union | `X25519` |
 | `CryptoSessionId` | branded type | Derived-session identifier |
 | `X25519KeyPair` | interface | X25519 public + secret key |
-| `CryptoError` | class | Base typed error |
+| `CryptoError` | class | Base typed error (carries `algorithm` + `cause`) |
 | `UnsupportedAlgorithmError` | class | Requested algorithm not supported |
 | `DecryptError` | class | AEAD authentication failure |
 
-## Dependency graph
+## License
 
-```
-@browsercore/crypto
-  └─ node:crypto
-```
-
-No other `@browsercore/*` packages are imported.
+MIT
