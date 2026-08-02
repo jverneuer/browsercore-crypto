@@ -15,8 +15,7 @@
  */
 
 import { aeadDecrypt, aeadEncrypt } from "./crypto.js";
-import { AES_128_GCM, AES_256_GCM, CHACHA20_POLY1305 } from "./types.js";
-import type { AeadCipher, SymmetricCipherId } from "./types.js";
+import { AES_128_GCM, AES_256_GCM, CHACHA20_POLY1305, type AeadCipher, type SymmetricCipherId } from "./types.js";
 
 /** AES-128-GCM: 16-byte key, 12-byte nonce, 16-byte tag (NIST SP 800-38D). */
 export const aes128Gcm: AeadCipher = {

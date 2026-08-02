@@ -26,8 +26,7 @@ import {
     type DecipherGCM,
 } from "node:crypto";
 
-import type { HashId, SymmetricCipherId, X25519KeyPair } from "./types.js";
-import { AES_128_GCM, AES_256_GCM, CHACHA20_POLY1305 } from "./types.js";
+import { AES_128_GCM, AES_256_GCM, CHACHA20_POLY1305, type HashId, type SymmetricCipherId, type X25519KeyPair } from "./types.js";
 import { DecryptError, UnsupportedAlgorithmError } from "./errors.js";
 import { assertNever } from "./utils.js";
 
@@ -218,10 +217,9 @@ export function aeadDecrypt(
         out.set(final, plaintext.length);
         return out;
     } catch (cause) {
-        // exactOptionalPropertyTypes: only pass `cause` when it is a real Error.
-        const err = cause instanceof Error ? cause : undefined;
-        const options = err !== undefined ? { cause: err } : undefined;
-        throw new DecryptError(cipher, options);
+        // The only operations inside the try are node:crypto calls, which always
+        // throw an Error on auth failure — cast preserves it as the cause.
+        throw new DecryptError(cipher, { cause: cause as Error });
     }
 }
 

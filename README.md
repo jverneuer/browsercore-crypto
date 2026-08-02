@@ -1,5 +1,10 @@
 # @browsercore/crypto
 
+
+[![npm version](https://img.shields.io/npm/v/@browsercore/crypto)](https://www.npmjs.com/package/@browsercore/crypto)
+[![coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jverneuer/browsercore-crypto/main/coverage/badge.json)](https://github.com/jverneuer/browsercore-crypto/blob/main/COVERAGE.md)
+[![lint](https://img.shields.io/github/actions/workflow/status/jverneuer/browsercore-crypto/ci.yml?label=lint)](https://github.com/jverneuer/browsercore-crypto/actions/workflows/ci.yml)
+
 A clean abstraction wrapping Node's native crypto APIs. Higher layers — especially
 TLS — call these methods so the crypto backend is replaceable.
 

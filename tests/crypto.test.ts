@@ -7,6 +7,7 @@
 
 import {
     createHash,
+    createHmac,
     hkdfSync,
     generateKeyPairSync,
     createPublicKey,
@@ -16,7 +17,8 @@ import {
 } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
-import { crypto, NodeCryptoProvider } from "../src/crypto.js";
+import { aeadEncrypt, crypto, NodeCryptoProvider } from "../src/crypto.js";
+import * as cryptoIndex from "../src/index.js";
 import { CryptoError, DecryptError, UnsupportedAlgorithmError, ensureCryptoError } from "../src/errors.js";
 import {
     aes128Gcm,
@@ -32,6 +34,8 @@ import {
     SHA_384,
     X25519,
     createCryptoSessionId,
+    type Aes128GcmId,
+    type Sha384Id,
 } from "../src/types.js";
 import { assertNever, createId } from "../src/utils.js";
 
@@ -62,6 +66,35 @@ describe("default singleton", () => {
         const bytes = crypto.randomBytes(16);
         expect(bytes).toBeInstanceOf(Uint8Array);
         expect(bytes.byteLength).toBe(16);
+    });
+});
+
+describe("public API (index.ts)", () => {
+    it("re-exports the provider singleton and CryptoProvider type member", () => {
+        expect(cryptoIndex.crypto).toBe(crypto);
+        expect(typeof cryptoIndex.NodeCryptoProvider).toBe("function");
+    });
+
+    it("re-exports the AEAD descriptors and cipher ids", () => {
+        expect(cryptoIndex.aes128Gcm).toBe(aes128Gcm);
+        expect(cryptoIndex.aes256Gcm).toBe(aes256Gcm);
+        expect(cryptoIndex.chacha20Poly1305).toBe(chacha20Poly1305);
+        expect(cryptoIndex.CIPHER_BY_ID).toBe(CIPHER_BY_ID);
+    });
+
+    it("re-exports the typed errors", () => {
+        expect(cryptoIndex.CryptoError).toBe(CryptoError);
+        expect(cryptoIndex.DecryptError).toBe(DecryptError);
+        expect(cryptoIndex.UnsupportedAlgorithmError).toBe(UnsupportedAlgorithmError);
+        expect(cryptoIndex.ensureCryptoError).toBe(ensureCryptoError);
+    });
+
+    it("re-exports the branded ids and helpers", () => {
+        expect(cryptoIndex.AES_128_GCM).toBe(AES_128_GCM);
+        expect(cryptoIndex.SHA_256).toBe(SHA_256);
+        expect(cryptoIndex.X25519).toBe(X25519);
+        expect(cryptoIndex.assertNever).toBe(assertNever);
+        expect(cryptoIndex.createId).toBe(createId);
     });
 });
 
@@ -121,6 +154,28 @@ describe("sha384", () => {
     });
 });
 
+describe("hmac", () => {
+    const provider = new NodeCryptoProvider();
+    const key = new Uint8Array(nodeRandomBytes(32));
+    const data = new TextEncoder().encode("hmac message");
+
+    it("sha-256 matches node:crypto for a known input", () => {
+        const expected = createHmac("sha256", key).update(data).digest();
+        expect(Buffer.from(provider.hmac(SHA_256, key, data)).equals(expected)).toBe(true);
+    });
+
+    it("sha-384 matches node:crypto for a known input", () => {
+        const expected = createHmac("sha384", key).update(data).digest();
+        expect(Buffer.from(provider.hmac(SHA_384, key, data)).equals(expected)).toBe(true);
+    });
+
+    it("throws on an unrecognized hash id (exhaustiveness guard)", () => {
+        // hashAlgorithmName switches over the HashId union; the default is an
+        // assertNever guard. Feeding a cast invalid id exercises that branch.
+        expect(() => provider.hmac("SHA-999" as unknown as Sha384Id, key, data)).toThrow(/Unexpected value/);
+    });
+});
+
 describe("typed errors", () => {
     it("CryptoError carries algorithm + cause + kind", () => {
         const cause = new Error("root");
@@ -155,6 +210,11 @@ describe("typed errors", () => {
 
         const fromString = ensureCryptoError("plain string");
         expect(fromString.message).toBe("plain string");
+
+        // Non-string, non-Error value (e.g. a number) falls through to the default message.
+        const fromNumber = ensureCryptoError(42);
+        expect(fromNumber).toBeInstanceOf(CryptoError);
+        expect(fromNumber.message).toBe("unknown crypto error");
     });
 });
 
@@ -219,6 +279,26 @@ describe("AEAD: AES-128-GCM round-trips and authenticates", () => {
         const ct = provider.aes128GcmEncrypt(key, nonce, plaintext, aad);
         const otherAad = new TextEncoder().encode("wrong-aad");
         expect(() => provider.aes128GcmDecrypt(key, nonce, ct, otherAad)).toThrow(DecryptError);
+    });
+
+    it("decrypt throws DecryptError when the input is shorter than the tag", () => {
+        // A valid ciphertext carries a 16-byte tag; anything shorter is malformed.
+        const tooShort = new Uint8Array(10);
+        expect(() => provider.aes128GcmDecrypt(key, nonce, tooShort, aad)).toThrow(DecryptError);
+    });
+});
+
+describe("aeadAlgorithmName exhaustiveness", () => {
+    it("throws on an unrecognized cipher id (assertNever guard)", () => {
+        // aeadAlgorithmName switches over the SymmetricCipherId union; the default
+        // is an assertNever guard. A cast invalid id exercises that branch.
+        const key = new Uint8Array(16);
+        const nonce = new Uint8Array(12);
+        const plaintext = new Uint8Array(0);
+        const aad = new Uint8Array(0);
+        expect(() =>
+            aeadEncrypt("AES-999-GCM" as unknown as Aes128GcmId, key, nonce, plaintext, aad),
+        ).toThrow(/Unexpected value/);
     });
 });
 
@@ -420,6 +500,76 @@ describe("verifySignature", () => {
         const spkiDer = createPublicKey(publicKey).export({ type: "spki", format: "der" });
         expect(
             provider.verifySignature("rsa_pss_rsae_sha256", new Uint8Array(spkiDer), signature, message),
+        ).toBe(true);
+    });
+
+    it("verifies an ECDSA P-384 SHA-384 signature over the raw message", () => {
+        const { publicKey, privateKey } = generateKeyPairSync("ec", {
+            namedCurve: "P-384",
+            publicKeyEncoding: { type: "spki", format: "pem" },
+            privateKeyEncoding: { type: "pkcs8", format: "pem" },
+        });
+        const signature = sign("sha384", message, { key: privateKey, dsaEncoding: "der" });
+        const spkiDer = createPublicKey(publicKey).export({ type: "spki", format: "der" });
+        expect(
+            provider.verifySignature(
+                "ecdsa_secp384r1_sha384",
+                new Uint8Array(spkiDer),
+                new Uint8Array(signature),
+                message,
+            ),
+        ).toBe(true);
+    });
+
+    it("rejects an ECDSA P-384 signature over a tampered message", () => {
+        const { publicKey, privateKey } = generateKeyPairSync("ec", {
+            namedCurve: "P-384",
+            publicKeyEncoding: { type: "spki", format: "pem" },
+            privateKeyEncoding: { type: "pkcs8", format: "pem" },
+        });
+        const signature = sign("sha384", message, { key: privateKey, dsaEncoding: "der" });
+        const spkiDer = createPublicKey(publicKey).export({ type: "spki", format: "der" });
+        const tampered = new TextEncoder().encode("tampered message");
+        expect(
+            provider.verifySignature(
+                "ecdsa_secp384r1_sha384",
+                new Uint8Array(spkiDer),
+                new Uint8Array(signature),
+                tampered,
+            ),
+        ).toBe(false);
+    });
+
+    it("verifies an RSA-PSS SHA-384 signature over the raw message", () => {
+        const { publicKey, privateKey } = generateKeyPairSync("rsa", {
+            modulusLength: 2048,
+            publicKeyEncoding: { type: "spki", format: "pem" },
+            privateKeyEncoding: { type: "pkcs8", format: "pem" },
+        });
+        const signature = new Uint8Array(sign("sha384", message, {
+            key: privateKey,
+            padding: constants.RSA_PKCS1_PSS_PADDING,
+            saltLength: 48,
+        }));
+        const spkiDer = createPublicKey(publicKey).export({ type: "spki", format: "der" });
+        expect(
+            provider.verifySignature("rsa_pss_rsae_sha384", new Uint8Array(spkiDer), signature, message),
+        ).toBe(true);
+    });
+
+    it("verifies an RSA-PKCS1 SHA-256 signature over the raw message", () => {
+        const { publicKey, privateKey } = generateKeyPairSync("rsa", {
+            modulusLength: 2048,
+            publicKeyEncoding: { type: "spki", format: "pem" },
+            privateKeyEncoding: { type: "pkcs8", format: "pem" },
+        });
+        const signature = new Uint8Array(sign("sha256", message, {
+            key: privateKey,
+            padding: constants.RSA_PKCS1_PADDING,
+        }));
+        const spkiDer = createPublicKey(publicKey).export({ type: "spki", format: "der" });
+        expect(
+            provider.verifySignature("rsa_pkcs1_sha256", new Uint8Array(spkiDer), signature, message),
         ).toBe(true);
     });
 
