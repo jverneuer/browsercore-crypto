@@ -59,9 +59,13 @@ export const chacha20Poly1305: AeadCipher = {
     },
 };
 
-/** Every supported {@link AeadCipher}, indexed by {@link SymmetricCipherId}. */
-export const CIPHER_BY_ID: Readonly<Record<SymmetricCipherId, AeadCipher>> = {
+/**
+ * Every supported {@link AeadCipher}, indexed by {@link SymmetricCipherId}.
+ * `satisfies` checks that every branded id maps to a descriptor (so adding a
+ * cipher forces an entry here) while preserving the literal key types.
+ */
+export const CIPHER_BY_ID = {
     [AES_128_GCM]: aes128Gcm,
     [AES_256_GCM]: aes256Gcm,
     [CHACHA20_POLY1305]: chacha20Poly1305,
-};
+} satisfies Readonly<Record<SymmetricCipherId, AeadCipher>>;
