@@ -151,10 +151,20 @@ describe("ensureCryptoError normalization", () => {
         expect(ensureCryptoError(new Error("x")).algorithm).toBeUndefined();
     });
 
-    // FINDING (report, not fix): DecryptError and UnsupportedAlgorithmError do
-    // NOT extend CryptoError (see src/errors.ts), despite CryptoError's JSDoc
-    // claiming "Base class for all crypto errors." As a result ensureCryptoError
-    // re-wraps them, losing the original `kind`. If they become CryptoError
-    // subclasses, this test should be un-skipped and made to assert pass-through.
-    it.todo("ensureCryptoError should pass through DecryptError / UnsupportedAlgorithmError unchanged");
+    // DecryptError and UnsupportedAlgorithmError extend CryptoError, so
+    // ensureCryptoError must pass them through UNCHANGED — same instance and
+    // with their original `kind` preserved (no re-wrapping that loses kind).
+    it("ensureCryptoError passes through DecryptError and UnsupportedAlgorithmError unchanged", () => {
+        const decrypt = new DecryptError(AES_128_GCM, { cause: new Error("root") });
+        const decryptOut = ensureCryptoError(decrypt, "ignored-algorithm");
+        expect(decryptOut).toBe(decrypt); // same instance — not re-wrapped
+        expect(decryptOut).toBeInstanceOf(CryptoError); // now a CryptoError subclass
+        expect(decryptOut.kind).toBe("DecryptError"); // kind preserved
+
+        const unsupported = new UnsupportedAlgorithmError("BogusScheme");
+        const unsupportedOut = ensureCryptoError(unsupported, "ignored-algorithm");
+        expect(unsupportedOut).toBe(unsupported); // same instance — not re-wrapped
+        expect(unsupportedOut).toBeInstanceOf(CryptoError); // now a CryptoError subclass
+        expect(unsupportedOut.kind).toBe("UnsupportedAlgorithmError"); // kind preserved
+    });
 });

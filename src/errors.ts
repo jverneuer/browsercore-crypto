@@ -7,9 +7,16 @@
 
 import { assertNever } from "./utils.js";
 
+/**
+ * The set of all crypto-error discriminator values. Declared as a union so each
+ * subclass can narrow `kind` to its own literal while still satisfying the base
+ * class's property type (a single `"CryptoError"` literal would forbid that).
+ */
+export type CryptoErrorKind = "CryptoError" | "UnsupportedAlgorithmError" | "DecryptError";
+
 /** Base class for all crypto errors. Carries the algorithm that failed, if known. */
 export class CryptoError extends Error {
-    public readonly kind = "CryptoError" as const;
+    public readonly kind: CryptoErrorKind = "CryptoError";
     /** Algorithm identifier that triggered the error, when applicable. */
     public readonly algorithm: string | undefined;
     /** `Error | undefined` (not `?`) so assignment is valid under exactOptionalPropertyTypes. */
@@ -27,28 +34,44 @@ export class CryptoError extends Error {
     }
 }
 
-/** The requested algorithm is not supported by this provider. */
-export class UnsupportedAlgorithmError extends Error {
-    public readonly kind = "UnsupportedAlgorithmError" as const;
-    public readonly algorithm: string;
+/**
+ * The requested algorithm is not supported by this provider.
+ *
+ * Extends {@link CryptoError} so it flows through {@link ensureCryptoError}
+ * unchanged (preserving `kind`) and satisfies `instanceof CryptoError`.
+ */
+export class UnsupportedAlgorithmError extends CryptoError {
+    public override readonly kind = "UnsupportedAlgorithmError" as const;
+    public override readonly algorithm: string;
 
     constructor(algorithm: string) {
-        super(`Unsupported crypto algorithm: ${algorithm}`);
-        this.name = "UnsupportedAlgorithmError";
+        // Align with CryptoError's (message, algorithm?, options?) signature so
+        // the base class records the algorithm and sets `name` via new.target.
+        super(`Unsupported crypto algorithm: ${algorithm}`, algorithm);
         this.algorithm = algorithm;
     }
 }
 
-/** Decryption failed — authentication tag mismatch or corrupt input. */
-export class DecryptError extends Error {
-    public readonly kind = "DecryptError" as const;
-    public readonly algorithm: string;
+/**
+ * Decryption failed — authentication tag mismatch or corrupt input.
+ *
+ * Extends {@link CryptoError} so it flows through {@link ensureCryptoError}
+ * unchanged (preserving `kind`) and satisfies `instanceof CryptoError`.
+ */
+export class DecryptError extends CryptoError {
+    public override readonly kind = "DecryptError" as const;
+    public override readonly algorithm: string;
     /** `Error | undefined` (not `?`) so assignment is valid under exactOptionalPropertyTypes. */
     public override readonly cause: Error | undefined;
 
     constructor(algorithm: string, options?: { cause?: Error }) {
-        super(`Decryption failed for ${algorithm}: authentication mismatch or corrupt input`);
-        this.name = "DecryptError";
+        // Align with CryptoError's (message, algorithm?, options?) signature so
+        // the base class records the algorithm/cause and sets `name` via new.target.
+        super(
+            `Decryption failed for ${algorithm}: authentication mismatch or corrupt input`,
+            algorithm,
+            options,
+        );
         this.algorithm = algorithm;
         this.cause = options?.cause;
     }

@@ -101,3 +101,48 @@ describe("X25519 properties", () => {
         expect(Buffer.from(a.publicKey).equals(Buffer.from(b.publicKey))).toBe(false);
     });
 });
+
+describe("RFC 7748 §5 degenerate / small-order u-coordinates", () => {
+    // A degenerate (small-order) u-coordinate MUST yield the all-zero shared
+    // secret rather than aborting. Node's OpenSSL rejects these inputs outright
+    // (ERR_OSSL_FAILED_DURING_DERIVATION); the provider converts that failure
+    // into the RFC-mandated 32 zero bytes. The all-zero u-coordinate (u = 0,
+    // the identity element representation) is the canonical degenerate input.
+    const ZERO = new Uint8Array(32);
+
+    it("returns 32 zero bytes for the all-zero u-coordinate (no throw)", () => {
+        const { secretKey } = provider.x25519GenerateKeyPair();
+        const secret = provider.x25519SharedSecret(secretKey, ZERO);
+        expect(secret).toHaveLength(32);
+        expect(secret).toEqual(new Uint8Array(32));
+    });
+
+    it("the all-zero result is stable across distinct secret scalars", () => {
+        const expected = new Uint8Array(32);
+        for (let i = 0; i < 8; i++) {
+            const { secretKey } = provider.x25519GenerateKeyPair();
+            // Distinct scalars guarantee we're hitting the degenerate path, not
+            // accidentally reusing the same key material.
+            expect(provider.x25519SharedSecret(secretKey, ZERO)).toEqual(expected);
+        }
+    });
+
+    it("a genuine (non-degenerate) peer still yields a non-zero secret", () => {
+        // Regression guard: the degenerate-input fix must not mask real results.
+        const { secretKey } = provider.x25519GenerateKeyPair();
+        const { publicKey } = provider.x25519GenerateKeyPair();
+        const secret = provider.x25519SharedSecret(secretKey, publicKey);
+        expect(secret).toHaveLength(32);
+        expect(secret.some((b) => b !== 0)).toBe(true);
+    });
+
+    it("does NOT mask genuine errors: a malformed peer key propagates instead of becoming all-zero", () => {
+        // A 31-byte u-coordinate is not a degenerate point — key rehydration
+        // fails with an OpenSSL ASN.1 parse error. That must surface unchanged
+        // (re-thrown), proving the catch converts only the derivation-failure
+        // case and never swallows a real programming error.
+        const { secretKey } = provider.x25519GenerateKeyPair();
+        const malformed = new Uint8Array(31);
+        expect(() => provider.x25519SharedSecret(secretKey, malformed)).toThrow();
+    });
+});

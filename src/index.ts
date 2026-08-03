@@ -17,6 +17,7 @@ export {
     UnsupportedAlgorithmError,
     ensureCryptoError,
 } from "./errors.js";
+export type { CryptoErrorKind } from "./errors.js";
 
 export {
     type AeadCipher,

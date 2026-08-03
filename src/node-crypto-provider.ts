@@ -146,11 +146,27 @@ export class NodeCryptoProvider implements CryptoProvider {
     }
 
     public x25519SharedSecret(secretKey: Uint8Array, peerPublicKey: Uint8Array): Uint8Array {
-        // Rehydrate raw 32-byte coordinates into KeyObjects via DER, then DH.
-        const priv = x25519PrivateKeyFromRaw(secretKey);
-        const pub = x25519PublicKeyFromRaw(peerPublicKey);
-        const secret = diffieHellman({ privateKey: priv, publicKey: pub });
-        return new Uint8Array(secret);
+        try {
+            // Rehydrate raw 32-byte coordinates into KeyObjects via DER, then DH.
+            const priv = x25519PrivateKeyFromRaw(secretKey);
+            const pub = x25519PublicKeyFromRaw(peerPublicKey);
+            const secret = diffieHellman({ privateKey: priv, publicKey: pub });
+            return new Uint8Array(secret);
+        } catch (e) {
+            // RFC 7748 §5: a degenerate / small-order u-coordinate (e.g. the
+            // all-zero input) MUST yield the all-zero shared secret rather than
+            // aborting. OpenSSL surfaces exactly that derivation-failure case as
+            // Node code ERR_OSSL_FAILED_DURING_DERIVATION; convert it to the
+            // 32 zero bytes. Any other error (malformed key, genuine programming
+            // error) is re-thrown so it is not masked.
+            if (
+                e instanceof Error &&
+                (e as Error & { code?: string }).code === "ERR_OSSL_FAILED_DURING_DERIVATION"
+            ) {
+                return new Uint8Array(32);
+            }
+            throw e;
+        }
     }
 
     public verifySignature(
