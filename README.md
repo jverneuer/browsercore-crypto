@@ -53,6 +53,40 @@ const shared = provider.x25519SharedSecret(mySecret, theirPublic);
 | `UnsupportedAlgorithmError` | class | Requested algorithm not supported |
 | `DecryptError` | class | AEAD authentication failure |
 
+## Development
+
+This package follows the shared `@browsercore/dev` config used across the
+`@browsercore/*` family. That package is the single source of truth for the
+TypeScript strict flags, the vitest setup, and the oxlint rules; this repo
+extends it instead of keeping its own copies.
+
+| Concern | Mechanism |
+| --- | --- |
+| TypeScript | `tsconfig.json` `extends @browsercore/dev/tsconfig.base.json` |
+| Vitest | `definePackageConfig({ name: "crypto" })` from `@browsercore/dev/vitest` |
+| oxlint | `oxlint.config.ts` imports the base object from `@browsercore/dev/oxlint` |
+| Coverage report | `coverage-md` bin (from `@browsercore/dev`) replaces the old per-repo script |
+
+Because oxlint's JSON `extends` cannot resolve `node_modules` paths, the lint
+config lives in `oxlint.config.ts` rather than `.oxlintrc.json`.
+
+```bash
+npm install        # pulls in @browsercore/dev (file:../dev locally)
+npm run typecheck  # tsc --noEmit
+npm run lint       # oxlint --type-aware src/
+npm test           # vitest run
+npm run build      # tsc -p tsconfig.build.json (emit to dist/)
+```
+
+Generate the coverage report with the shared `coverage-md` binary (writes
+`COVERAGE.md` and `coverage/badge.json`, the latter backing the coverage badge
+above):
+
+```bash
+npx vitest run --coverage
+npx coverage-md
+```
+
 ## License
 
 MIT
