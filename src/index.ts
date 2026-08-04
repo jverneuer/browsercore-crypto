@@ -25,6 +25,8 @@ export {
     type Aes256GcmId,
     type ChaCha20Poly1305Id,
     type CryptoSessionId,
+    type EcdhCurve,
+    type EcdhKeyPair,
     type HashId,
     type KeyExchangeId,
     type Sha256Id,

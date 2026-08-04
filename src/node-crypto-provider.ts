@@ -14,6 +14,7 @@ import {
     generateKeyPairSync,
     createPublicKey,
     createVerify,
+    createECDH,
     diffieHellman,
     constants,
 } from "node:crypto";
@@ -22,6 +23,8 @@ import {
     AES_128_GCM,
     AES_256_GCM,
     CHACHA20_POLY1305,
+    type EcdhCurve,
+    type EcdhKeyPair,
     type HashId,
     type X25519KeyPair,
 } from "./types.js";
@@ -202,6 +205,38 @@ export class NodeCryptoProvider implements CryptoProvider {
             default:
                 throw new UnsupportedAlgorithmError(`unsupported signature scheme: ${scheme}`);
         }
+    }
+
+    public ecdhGenerateKeyPair(curve: EcdhCurve): EcdhKeyPair {
+        const ecdh = createECDH(ecdhCurveToNode(curve));
+        ecdh.generateKeys();
+        // getPublicKey() defaults to uncompressed form (0x04 || x || y) — exactly
+        // the layout TLS 1.3 KeyShareEntry expects.
+        return {
+            curve,
+            publicKey: new Uint8Array(ecdh.getPublicKey()),
+            secretKey: new Uint8Array(ecdh.getPrivateKey()),
+        };
+    }
+
+    public ecdhSharedSecret(curve: EcdhCurve, secretKey: Uint8Array, peerPublicKey: Uint8Array): Uint8Array {
+        const ecdh = createECDH(ecdhCurveToNode(curve));
+        ecdh.setPrivateKey(secretKey);
+        // computeSecret returns the x-coordinate of the shared point — the raw
+        // ECDH output that TLS feeds into the key schedule.
+        return new Uint8Array(ecdh.computeSecret(peerPublicKey));
+    }
+}
+
+/** Map a branded {@link EcdhCurve} to the node:crypto curve name. */
+function ecdhCurveToNode(curve: EcdhCurve): string {
+    switch (curve) {
+        case "secp256r1":
+            return "prime256v1";
+        case "secp384r1":
+            return "secp384r1";
+        default:
+            return assertNever(curve);
     }
 }
 

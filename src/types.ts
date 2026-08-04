@@ -66,6 +66,30 @@ export type KeyExchangeId = X25519Id;
 export const X25519: X25519Id = "X25519" as X25519Id;
 
 // ---------------------------------------------------------------------------
+// ECDH (named-curve) key exchange identifiers.
+// ---------------------------------------------------------------------------
+
+/**
+ * Named ECDH curves for TLS 1.3 key share. Plain string-literal union (not
+ * branded) so it interops cleanly with @browsercore/tls's NamedGroup and
+ * KeyPair.algorithm, which are also plain string unions.
+ */
+export type EcdhCurve = "secp256r1" | "secp384r1";
+
+/** An ECDH key pair on a named curve. */
+export interface EcdhKeyPair {
+    /** The curve this key pair was generated on. */
+    readonly curve: EcdhCurve;
+    /**
+     * Public key bytes in uncompressed form: 0x04 || x || y.
+     * secp256r1 → 65 bytes; secp384r1 → 97 bytes.
+     */
+    readonly publicKey: Uint8Array;
+    /** Private key bytes (raw scalar, big-endian, curve-fixed length). */
+    readonly secretKey: Uint8Array;
+}
+
+// ---------------------------------------------------------------------------
 // AEAD cipher descriptor — describes the static parameters of a cipher.
 // ---------------------------------------------------------------------------
 
