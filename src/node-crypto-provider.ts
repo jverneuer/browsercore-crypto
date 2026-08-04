@@ -15,6 +15,7 @@ import {
     createPublicKey,
     createVerify,
     createECDH,
+    createCipheriv,
     diffieHellman,
     constants,
 } from "node:crypto";
@@ -253,6 +254,21 @@ export class NodeCryptoProvider implements CryptoProvider {
         // computeSecret returns the x-coordinate of the shared point — the raw
         // ECDH output that TLS feeds into the key schedule.
         return new Uint8Array(ecdh.computeSecret(peerPublicKey));
+    }
+
+    public aesEcbEncrypt(key: Uint8Array, block: Uint8Array): Uint8Array {
+        // QUIC header protection (RFC 9001 §5.4.1) requires AES-ECB on a
+        // single 16-byte block. ECB mode takes no IV. Only AES-128 (16-byte
+        // key) and AES-256 (32-byte key) are used by QUIC.
+        const algorithm = key.length === 16 ? "aes-128-ecb" : "aes-256-ecb";
+        const cipher = createCipheriv(algorithm, key, new Uint8Array(0));
+        cipher.setAutoPadding(false);
+        const out = new Uint8Array(cipher.update(block));
+        const final = new Uint8Array(cipher.final());
+        const result = new Uint8Array(out.length + final.length);
+        result.set(out, 0);
+        result.set(final, out.length);
+        return result;
     }
 }
 
