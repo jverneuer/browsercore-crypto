@@ -9,7 +9,7 @@
 export { NodeCryptoProvider, crypto } from "./crypto.js";
 export type { CryptoProvider } from "./crypto.js";
 
-export { aes128Gcm, aes256Gcm, chacha20Poly1305, CIPHER_BY_ID } from "./ciphers.js";
+export { aes128Gcm, aes256Gcm, aes128Ccm, chacha20Poly1305, CIPHER_BY_ID } from "./ciphers.js";
 
 export {
     CryptoError,
@@ -23,6 +23,7 @@ export {
     type AeadCipher,
     type Aes128GcmId,
     type Aes256GcmId,
+    type Aes128CcmId,
     type ChaCha20Poly1305Id,
     type CryptoSessionId,
     type EcdhCurve,
@@ -36,6 +37,7 @@ export {
     type X25519KeyPair,
     AES_128_GCM,
     AES_256_GCM,
+    AES_128_CCM,
     CHACHA20_POLY1305,
     SHA_256,
     SHA_384,

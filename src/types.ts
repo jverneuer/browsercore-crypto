@@ -23,18 +23,22 @@ export function createCryptoSessionId(): CryptoSessionId {
 
 export type Aes128GcmId = "AES-128-GCM" & { __brand: "Aes128GcmId" };
 export type Aes256GcmId = "AES-256-GCM" & { __brand: "Aes256GcmId" };
+export type Aes128CcmId = "AES-128-CCM" & { __brand: "Aes128CcmId" };
 export type ChaCha20Poly1305Id = "ChaCha20-Poly1305" & { __brand: "ChaCha20Poly1305Id" };
 
 /** Every symmetric AEAD cipher this provider supports. */
 export type SymmetricCipherId =
     | Aes128GcmId
     | Aes256GcmId
+    | Aes128CcmId
     | ChaCha20Poly1305Id;
 
 /** Canonical string literal for each AES-128-GCM usage. */
 export const AES_128_GCM: Aes128GcmId = "AES-128-GCM" as Aes128GcmId;
 /** Canonical string literal for each AES-256-GCM usage. */
 export const AES_256_GCM: Aes256GcmId = "AES-256-GCM" as Aes256GcmId;
+/** Canonical string literal for each AES-128-CCM usage. */
+export const AES_128_CCM: Aes128CcmId = "AES-128-CCM" as Aes128CcmId;
 /** Canonical string literal for each ChaCha20-Poly1305 usage. */
 export const CHACHA20_POLY1305: ChaCha20Poly1305Id = "ChaCha20-Poly1305" as ChaCha20Poly1305Id;
 

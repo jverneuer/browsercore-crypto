@@ -21,6 +21,7 @@ import {
 
 import {
     AES_128_GCM,
+    AES_128_CCM,
     AES_256_GCM,
     CHACHA20_POLY1305,
     type EcdhCurve,
@@ -116,6 +117,24 @@ export class NodeCryptoProvider implements CryptoProvider {
         aad: Uint8Array,
     ): Uint8Array {
         return aeadDecrypt(AES_256_GCM, key, nonce, ciphertext, aad);
+    }
+
+    public aes128CcmEncrypt(
+        key: Uint8Array,
+        nonce: Uint8Array,
+        plaintext: Uint8Array,
+        aad: Uint8Array,
+    ): Uint8Array {
+        return aeadEncrypt(AES_128_CCM, key, nonce, plaintext, aad);
+    }
+
+    public aes128CcmDecrypt(
+        key: Uint8Array,
+        nonce: Uint8Array,
+        ciphertext: Uint8Array,
+        aad: Uint8Array,
+    ): Uint8Array {
+        return aeadDecrypt(AES_128_CCM, key, nonce, ciphertext, aad);
     }
 
     public chacha20Poly1305Encrypt(
