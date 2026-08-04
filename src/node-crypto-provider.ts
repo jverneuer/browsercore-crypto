@@ -212,10 +212,19 @@ export class NodeCryptoProvider implements CryptoProvider {
         ecdh.generateKeys();
         // getPublicKey() defaults to uncompressed form (0x04 || x || y) — exactly
         // the layout TLS 1.3 KeyShareEntry expects.
+        //
+        // getPrivateKey() returns a big-endian scalar with leading zero bytes
+        // stripped, so it can be shorter than the curve's fixed byte length
+        // (e.g. 47 bytes for secp384r1 instead of 48). Left-pad to the curve's
+        // canonical length so callers get a fixed-width scalar.
+        const scalarLength = curve === "secp256r1" ? 32 : 48;
+        const rawScalar = ecdh.getPrivateKey();
+        const secretKey = new Uint8Array(scalarLength);
+        secretKey.set(rawScalar, scalarLength - rawScalar.length);
         return {
             curve,
             publicKey: new Uint8Array(ecdh.getPublicKey()),
-            secretKey: new Uint8Array(ecdh.getPrivateKey()),
+            secretKey,
         };
     }
 
