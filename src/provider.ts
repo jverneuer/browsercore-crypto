@@ -69,6 +69,22 @@ export interface CryptoProvider {
         aad: Uint8Array,
     ): Uint8Array;
 
+    /** AEAD-encrypt with AES-128-CCM. Ciphertext has the tag appended. */
+    aes128CcmEncrypt(
+        key: Uint8Array,
+        nonce: Uint8Array,
+        plaintext: Uint8Array,
+        aad: Uint8Array,
+    ): Uint8Array;
+
+    /** AEAD-decrypt with AES-128-CCM. Throws {@link DecryptError} on auth failure. */
+    aes128CcmDecrypt(
+        key: Uint8Array,
+        nonce: Uint8Array,
+        ciphertext: Uint8Array,
+        aad: Uint8Array,
+    ): Uint8Array;
+
     /** AEAD-encrypt with ChaCha20-Poly1305. Ciphertext has the tag appended. */
     chacha20Poly1305Encrypt(
         key: Uint8Array,
