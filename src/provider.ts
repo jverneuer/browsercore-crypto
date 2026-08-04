@@ -6,7 +6,7 @@
  * calls these methods, never `node:crypto` directly.
  */
 
-import type { HashId, X25519KeyPair } from "./types.js";
+import type { EcdhCurve, EcdhKeyPair, HashId, X25519KeyPair } from "./types.js";
 
 /**
  * Pure cryptographic primitive abstraction. Higher layers depend on this
@@ -109,6 +109,16 @@ export interface CryptoProvider {
      * Returns 32 bytes.
      */
     x25519SharedSecret(secretKey: Uint8Array, peerPublicKey: Uint8Array): Uint8Array;
+
+    /** Generate an ECDH key pair on the given named curve. */
+    ecdhGenerateKeyPair(curve: EcdhCurve): EcdhKeyPair;
+
+    /**
+     * Compute the ECDH shared secret on the given named curve between `secretKey`
+     * and `peerPublicKey` (uncompressed form, 0x04 || x || y). Returns the
+     * x-coordinate of the shared point (32 bytes for secp256r1, 48 for secp384r1).
+     */
+    ecdhSharedSecret(curve: EcdhCurve, secretKey: Uint8Array, peerPublicKey: Uint8Array): Uint8Array;
 
     /**
      * Verify a digital signature over `data` using the given scheme and public key.

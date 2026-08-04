@@ -14,6 +14,7 @@ import {
     generateKeyPairSync,
     createPublicKey,
     createVerify,
+    createECDH,
     diffieHellman,
     constants,
 } from "node:crypto";
@@ -23,6 +24,8 @@ import {
     AES_128_CCM,
     AES_256_GCM,
     CHACHA20_POLY1305,
+    type EcdhCurve,
+    type EcdhKeyPair,
     type HashId,
     type X25519KeyPair,
 } from "./types.js";
@@ -221,6 +224,47 @@ export class NodeCryptoProvider implements CryptoProvider {
             default:
                 throw new UnsupportedAlgorithmError(`unsupported signature scheme: ${scheme}`);
         }
+    }
+
+    public ecdhGenerateKeyPair(curve: EcdhCurve): EcdhKeyPair {
+        const ecdh = createECDH(ecdhCurveToNode(curve));
+        ecdh.generateKeys();
+        // getPublicKey() defaults to uncompressed form (0x04 || x || y) — exactly
+        // the layout TLS 1.3 KeyShareEntry expects.
+        //
+        // getPrivateKey() returns a big-endian scalar with leading zero bytes
+        // stripped, so it can be shorter than the curve's fixed byte length
+        // (e.g. 47 bytes for secp384r1 instead of 48). Left-pad to the curve's
+        // canonical length so callers get a fixed-width scalar.
+        const scalarLength = curve === "secp256r1" ? 32 : 48;
+        const rawScalar = ecdh.getPrivateKey();
+        const secretKey = new Uint8Array(scalarLength);
+        secretKey.set(rawScalar, scalarLength - rawScalar.length);
+        return {
+            curve,
+            publicKey: new Uint8Array(ecdh.getPublicKey()),
+            secretKey,
+        };
+    }
+
+    public ecdhSharedSecret(curve: EcdhCurve, secretKey: Uint8Array, peerPublicKey: Uint8Array): Uint8Array {
+        const ecdh = createECDH(ecdhCurveToNode(curve));
+        ecdh.setPrivateKey(secretKey);
+        // computeSecret returns the x-coordinate of the shared point — the raw
+        // ECDH output that TLS feeds into the key schedule.
+        return new Uint8Array(ecdh.computeSecret(peerPublicKey));
+    }
+}
+
+/** Map a branded {@link EcdhCurve} to the node:crypto curve name. */
+function ecdhCurveToNode(curve: EcdhCurve): string {
+    switch (curve) {
+        case "secp256r1":
+            return "prime256v1";
+        case "secp384r1":
+            return "secp384r1";
+        default:
+            return assertNever(curve);
     }
 }
 
