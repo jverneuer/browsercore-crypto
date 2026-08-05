@@ -242,6 +242,34 @@ describe("decode rejects malformed SPKI", () => {
         bad[11] = 0x01;
         expect(() => spkiToRaw(bad)).toThrow(/unused bits/);
     });
+
+    it("rejects a buffer with a wrong algorithm SEQUENCE length", () => {
+        const bad = RFC8410_SPKI_DER.slice();
+        // Offset 3 holds the algorithm SEQUENCE length byte (0x05). Change to 0x06.
+        bad[3] = 0x06;
+        expect(() => spkiToRaw(bad)).toThrow(/algorithm SEQUENCE must be 5 bytes/);
+    });
+
+    it("rejects a buffer with a wrong OID length", () => {
+        const bad = RFC8410_SPKI_DER.slice();
+        // Offset 5 holds the OID length byte (0x03). Change to 0x04.
+        bad[5] = 0x04;
+        expect(() => spkiToRaw(bad)).toThrow(/OID must be 3 bytes/);
+    });
+
+    it("rejects a buffer with a wrong BIT STRING length", () => {
+        const bad = RFC8410_SPKI_DER.slice();
+        // Offset 10 holds the BIT STRING length byte (0x21 = 33). Change to 0x20.
+        bad[10] = 0x20;
+        expect(() => spkiToRaw(bad)).toThrow(/BIT STRING must be 33 bytes/);
+    });
+
+    it("rejects a buffer whose outer SEQUENCE length does not match DER size", () => {
+        const bad = RFC8410_SPKI_DER.slice();
+        // Offset 1 holds the outer SEQUENCE length byte (0x2a = 42). Change to 0x29.
+        bad[1] = 0x29;
+        expect(() => spkiToRaw(bad)).toThrow(/outer SEQUENCE length/);
+    });
 });
 
 describe("encode rejects non-32-byte inputs", () => {
