@@ -208,6 +208,34 @@ describe("decode rejects malformed PKCS#8", () => {
         trailing[48] = 0x00;
         expect(() => pkcs8ToRaw(trailing)).toThrow(/48 bytes/);
     });
+
+    it("rejects a buffer with a wrong outer OCTET STRING length", () => {
+        const bad = RFC8410_PKCS8_DER.slice();
+        // Offset 13 holds the outer OCTET STRING length byte (0x22 = 34). Change to 0x23.
+        bad[13] = 0x23;
+        expect(() => pkcs8ToRaw(bad)).toThrow(/outer OCTET STRING must be 34 bytes/);
+    });
+
+    it("rejects a buffer with a wrong inner OCTET STRING length", () => {
+        const bad = RFC8410_PKCS8_DER.slice();
+        // Offset 15 holds the inner OCTET STRING length byte (0x20 = 32). Change to 0x21.
+        bad[15] = 0x21;
+        expect(() => pkcs8ToRaw(bad)).toThrow(/inner OCTET STRING must be 32 bytes/);
+    });
+
+    it("rejects a buffer with a wrong algorithm SEQUENCE length", () => {
+        const bad = RFC8410_PKCS8_DER.slice();
+        // Offset 6 holds the algorithm SEQUENCE length byte (0x05). Change to 0x06.
+        bad[6] = 0x06;
+        expect(() => pkcs8ToRaw(bad)).toThrow(/algorithm SEQUENCE must be 5 bytes/);
+    });
+
+    it("rejects a buffer with a wrong OID length", () => {
+        const bad = RFC8410_PKCS8_DER.slice();
+        // Offset 8 holds the OID length byte (0x03). Change to 0x04.
+        bad[8] = 0x04;
+        expect(() => pkcs8ToRaw(bad)).toThrow(/OID must be 3 bytes/);
+    });
 });
 
 describe("decode rejects malformed SPKI", () => {
