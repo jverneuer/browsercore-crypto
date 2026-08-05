@@ -26,44 +26,29 @@ const AEAD_TAG_LENGTH = 16;
 type AeadAlgorithmName = CipherGCMTypes | CipherCCMTypes | CipherChaCha20Poly1305Types;
 
 /**
- * Map a branded {@link SymmetricCipherId} to the algorithm string node:crypto expects.
+ * Full node:crypto configuration for a branded cipher.
+ *
+ * Both the algorithm string and the per-cipher options are always looked up
+ * together (in `aeadEncrypt` and `aeadDecrypt`), so a single switch returns
+ * both — one exhaustiveness guard, reachable from the public API, instead of
+ * two guards where the second was dead code.
  *
  * @param cipher The branded cipher identifier.
- * @returns The node:crypto algorithm string (e.g. `"aes-128-gcm"`).
+ * @returns The node:crypto algorithm string and its cipher options.
  */
-function aeadAlgorithmName(cipher: SymmetricCipherId): AeadAlgorithmName {
+function aeadCipherConfig(cipher: SymmetricCipherId): {
+    algorithm: AeadAlgorithmName;
+    options: CipherCCMOptions | undefined;
+} {
     switch (cipher) {
         case "AES-128-GCM":
-            return "aes-128-gcm";
+            return { algorithm: "aes-128-gcm", options: undefined };
         case "AES-256-GCM":
-            return "aes-256-gcm";
+            return { algorithm: "aes-256-gcm", options: undefined };
         case "AES-128-CCM":
-            return "aes-128-ccm";
+            return { algorithm: "aes-128-ccm", options: { authTagLength: AEAD_TAG_LENGTH } };
         case "ChaCha20-Poly1305":
-            return "chacha20-poly1305";
-        default:
-            return assertNever(cipher);
-    }
-}
-
-/**
- * Per-cipher node:crypto options.
- *
- * AES-CCM requires an explicit `authTagLength` (TLS 1.3 uses the full 16-byte
- * tag); GCM and ChaCha20-Poly1305 use node's default tag length, so they pass
- * no options.
- *
- * @param cipher The branded cipher identifier.
- * @returns Options for `createCipheriv`/`createDecipheriv`, or `undefined`.
- */
-function aeadCipherOptions(cipher: SymmetricCipherId): CipherCCMOptions | undefined {
-    switch (cipher) {
-        case "AES-128-CCM":
-            return { authTagLength: AEAD_TAG_LENGTH };
-        case "AES-128-GCM":
-        case "AES-256-GCM":
-        case "ChaCha20-Poly1305":
-            return undefined;
+            return { algorithm: "chacha20-poly1305", options: undefined };
         default:
             return assertNever(cipher);
     }
@@ -140,8 +125,7 @@ export function aeadEncrypt(
     plaintext: Uint8Array,
     aad: Uint8Array,
 ): Uint8Array {
-    const algorithm = aeadAlgorithmName(cipher);
-    const options = aeadCipherOptions(cipher);
+    const { algorithm, options } = aeadCipherConfig(cipher);
     const enc = options === undefined
         ? (createCipheriv(algorithm, key, nonce) as CipherGCM)
         : (createCipheriv(algorithm, key, nonce, options) as CipherCCM);
@@ -183,8 +167,7 @@ export function aeadDecrypt(
     if (ciphertextAndTag.length < AEAD_TAG_LENGTH) {
         throw new DecryptError(cipher);
     }
-    const algorithm = aeadAlgorithmName(cipher);
-    const options = aeadCipherOptions(cipher);
+    const { algorithm, options } = aeadCipherConfig(cipher);
     const tagStart = ciphertextAndTag.length - AEAD_TAG_LENGTH;
     const ciphertext = ciphertextAndTag.subarray(0, tagStart);
     const tag = ciphertextAndTag.subarray(tagStart);
