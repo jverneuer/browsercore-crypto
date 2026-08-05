@@ -11,12 +11,10 @@ import {
     createHash,
     createHmac,
     hkdfSync,
-    generateKeyPairSync,
     createPublicKey,
     createVerify,
     createECDH,
     createCipheriv,
-    diffieHellman,
     constants,
 } from "node:crypto";
 
@@ -33,7 +31,7 @@ import {
 import { UnsupportedAlgorithmError } from "./errors.js";
 import { assertNever } from "./utils.js";
 import { aeadEncrypt, aeadDecrypt } from "./aead.js";
-import { x25519PrivateKeyFromRaw, x25519PublicKeyFromRaw, X25519_PUB_PREFIX, X25519_PRIV_PREFIX } from "./x25519.js";
+import { defaultX25519Backend } from "./x25519/index.js";
 import type { CryptoProvider } from "./provider.js";
 
 /**
@@ -157,39 +155,19 @@ export class NodeCryptoProvider implements CryptoProvider {
     }
 
     public x25519GenerateKeyPair(): X25519KeyPair {
-        // node:crypto.generateKeyPairSync("x25519") yields KeyObjects; export each
-        // as raw DER and strip the fixed prefix to recover the 32-byte coordinate.
-        const pair = generateKeyPairSync("x25519", {
-            publicKeyEncoding: { type: "spki", format: "der" },
-            privateKeyEncoding: { type: "pkcs8", format: "der" },
-        });
-        const publicKey = new Uint8Array(pair.publicKey).subarray(X25519_PUB_PREFIX.length);
-        const secretKey = new Uint8Array(pair.privateKey).subarray(X25519_PRIV_PREFIX.length);
+        // Derive the public coordinate from a random 32-byte scalar via the
+        // pluggable X25519 backend (noble-curves by default). The backend
+        // handles clamping per RFC 7748 §5 internally.
+        const secretKey = this.randomBytes(32);
+        const publicKey = defaultX25519Backend.publicKey(secretKey);
         return { publicKey, secretKey };
     }
 
     public x25519SharedSecret(secretKey: Uint8Array, peerPublicKey: Uint8Array): Uint8Array {
-        try {
-            // Rehydrate raw 32-byte coordinates into KeyObjects via DER, then DH.
-            const priv = x25519PrivateKeyFromRaw(secretKey);
-            const pub = x25519PublicKeyFromRaw(peerPublicKey);
-            const secret = diffieHellman({ privateKey: priv, publicKey: pub });
-            return new Uint8Array(secret);
-        } catch (e) {
-            // RFC 7748 §5: a degenerate / small-order u-coordinate (e.g. the
-            // all-zero input) MUST yield the all-zero shared secret rather than
-            // aborting. OpenSSL surfaces exactly that derivation-failure case as
-            // Node code ERR_OSSL_FAILED_DURING_DERIVATION; convert it to the
-            // 32 zero bytes. Any other error (malformed key, genuine programming
-            // error) is re-thrown so it is not masked.
-            if (
-                e instanceof Error &&
-                (e as Error & { code?: string }).code === "ERR_OSSL_FAILED_DURING_DERIVATION"
-            ) {
-                return new Uint8Array(32);
-            }
-            throw e;
-        }
+        // Diffie-Hellman via the pluggable backend. Degenerate (small-order)
+        // inputs produce the RFC 7748 §5 all-zero shared secret — the backend
+        // handles that internally, so no try/catch required here.
+        return defaultX25519Backend.sharedSecret(secretKey, peerPublicKey);
     }
 
     public verifySignature(

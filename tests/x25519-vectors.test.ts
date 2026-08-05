@@ -137,12 +137,13 @@ describe("RFC 7748 §5 degenerate / small-order u-coordinates", () => {
     });
 
     it("does NOT mask genuine errors: a malformed peer key propagates instead of becoming all-zero", () => {
-        // A 31-byte u-coordinate is not a degenerate point — key rehydration
-        // fails with an OpenSSL ASN.1 parse error. That must surface unchanged
-        // (re-thrown), proving the catch converts only the derivation-failure
-        // case and never swallows a real programming error.
+        // A 31-byte u-coordinate is not a valid curve point — its length is
+        // wrong. noble-curves validates input length and throws, proving the
+        // degenerate (all-zero) path is handled separately and a genuine
+        // malformation is never silently converted to all-zero.
         const { secretKey } = provider.x25519GenerateKeyPair();
         const malformed = new Uint8Array(31);
+        malformed[0] = 1; // ensure it is NOT the all-zero (degenerate) input
         expect(() => provider.x25519SharedSecret(secretKey, malformed)).toThrow();
     });
 });
