@@ -2,7 +2,7 @@
 
 
 [![npm version](https://img.shields.io/npm/v/@browsercore/crypto)](https://www.npmjs.com/package/@browsercore/crypto)
-[![coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jverneuer/browsercore-crypto/coverage/coverage/badge.json)](https://github.com/jverneuer/browsercore-crypto/blob/main/COVERAGE.md)
+[![coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jverneuer/browsercore-crypto/main/.github/coverage-badge.json)](https://github.com/jverneuer/browsercore-crypto/blob/main/COVERAGE.md)
 [![lint](https://img.shields.io/github/actions/workflow/status/jverneuer/browsercore-crypto/ci.yml?label=lint)](https://github.com/jverneuer/browsercore-crypto/actions/workflows/ci.yml)
 
 Cryptographic primitives for the browsercore stack: secure randomness, hashing
