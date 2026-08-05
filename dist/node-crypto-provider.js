@@ -5,12 +5,12 @@
  * backend stays replaceable. Exported as the default singleton so consumers can call
  * `crypto.hkdf(...)` without threading a provider through every constructor.
  */
-import { randomBytes as nodeRandomBytes, createHash, createHmac, hkdfSync, generateKeyPairSync, createPublicKey, createVerify, createECDH, createCipheriv, diffieHellman, constants, } from "node:crypto";
+import { randomBytes as nodeRandomBytes, createHash, createHmac, hkdfSync, createPublicKey, createVerify, createECDH, createCipheriv, constants, } from "node:crypto";
 import { AES_128_GCM, AES_128_CCM, AES_256_GCM, CHACHA20_POLY1305, } from "./types.js";
 import { UnsupportedAlgorithmError } from "./errors.js";
 import { assertNever } from "./utils.js";
 import { aeadEncrypt, aeadDecrypt } from "./aead.js";
-import { x25519PrivateKeyFromRaw, x25519PublicKeyFromRaw, X25519_PUB_PREFIX, X25519_PRIV_PREFIX } from "./x25519.js";
+import { defaultX25519Backend } from "./x25519/index.js";
 /**
  * Map a branded {@link HashId} to the algorithm string Node's `node:crypto`
  * expects. Exhaustive — adding a member to {@link HashId} forces every branch
@@ -72,37 +72,18 @@ export class NodeCryptoProvider {
         return aeadDecrypt(CHACHA20_POLY1305, key, nonce, ciphertext, aad);
     }
     x25519GenerateKeyPair() {
-        // node:crypto.generateKeyPairSync("x25519") yields KeyObjects; export each
-        // as raw DER and strip the fixed prefix to recover the 32-byte coordinate.
-        const pair = generateKeyPairSync("x25519", {
-            publicKeyEncoding: { type: "spki", format: "der" },
-            privateKeyEncoding: { type: "pkcs8", format: "der" },
-        });
-        const publicKey = new Uint8Array(pair.publicKey).subarray(X25519_PUB_PREFIX.length);
-        const secretKey = new Uint8Array(pair.privateKey).subarray(X25519_PRIV_PREFIX.length);
+        // Delegate to the default X25519 backend (noble-curves). The backend
+        // applies RFC 7748 §5 clamping internally, removing the DER/ASN.1 bug
+        // class that plagued the old node:crypto KeyObject path.
+        const secretKey = this.randomBytes(32);
+        const publicKey = defaultX25519Backend.publicKey(secretKey);
         return { publicKey, secretKey };
     }
     x25519SharedSecret(secretKey, peerPublicKey) {
-        try {
-            // Rehydrate raw 32-byte coordinates into KeyObjects via DER, then DH.
-            const priv = x25519PrivateKeyFromRaw(secretKey);
-            const pub = x25519PublicKeyFromRaw(peerPublicKey);
-            const secret = diffieHellman({ privateKey: priv, publicKey: pub });
-            return new Uint8Array(secret);
-        }
-        catch (e) {
-            // RFC 7748 §5: a degenerate / small-order u-coordinate (e.g. the
-            // all-zero input) MUST yield the all-zero shared secret rather than
-            // aborting. OpenSSL surfaces exactly that derivation-failure case as
-            // Node code ERR_OSSL_FAILED_DURING_DERIVATION; convert it to the
-            // 32 zero bytes. Any other error (malformed key, genuine programming
-            // error) is re-thrown so it is not masked.
-            if (e instanceof Error &&
-                e.code === "ERR_OSSL_FAILED_DURING_DERIVATION") {
-                return new Uint8Array(32);
-            }
-            throw e;
-        }
+        // Delegate to the default X25519 backend. The noble-curves backend
+        // handles the RFC 7748 §5 degenerate (all-zero) u-coordinate correctly,
+        // returning the mandated 32 zero bytes — no special-casing needed.
+        return defaultX25519Backend.sharedSecret(secretKey, peerPublicKey);
     }
     verifySignature(scheme, publicKey, signature, data) {
         // Rehydrate the DER SPKI into a KeyObject node:crypto can verify with.

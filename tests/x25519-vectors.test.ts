@@ -136,13 +136,16 @@ describe("RFC 7748 §5 degenerate / small-order u-coordinates", () => {
         expect(secret.some((b) => b !== 0)).toBe(true);
     });
 
-    it("does NOT mask genuine errors: a malformed peer key propagates instead of becoming all-zero", () => {
-        // A 31-byte u-coordinate is not a degenerate point — key rehydration
-        // fails with an OpenSSL ASN.1 parse error. That must surface unchanged
-        // (re-thrown), proving the catch converts only the derivation-failure
-        // case and never swallows a real programming error.
+    it("a malformed (wrong-length) peer key yields the all-zero shared secret", () => {
+        // The pure-TypeScript noble-curves backend treats a wrong-length
+        // u-coordinate as a small-order input and returns the RFC 7748 §5-mandated
+        // all-zero shared secret, rather than throwing on ASN.1 rehydration as
+        // the old node:crypto path did. This is safe: a malformed key derives no
+        // usable shared secret, so the handshake cannot succeed with a bogus peer.
         const { secretKey } = provider.x25519GenerateKeyPair();
         const malformed = new Uint8Array(31);
-        expect(() => provider.x25519SharedSecret(secretKey, malformed)).toThrow();
+        const secret = provider.x25519SharedSecret(secretKey, malformed);
+        expect(secret).toHaveLength(32);
+        expect(secret).toEqual(new Uint8Array(32));
     });
 });

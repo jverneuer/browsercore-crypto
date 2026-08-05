@@ -10,4 +10,5 @@ export { aes128Gcm, aes256Gcm, aes128Ccm, chacha20Poly1305, CIPHER_BY_ID } from 
 export { CryptoError, DecryptError, UnsupportedAlgorithmError, ensureCryptoError, } from "./errors.js";
 export { AES_128_GCM, AES_256_GCM, AES_128_CCM, CHACHA20_POLY1305, SHA_256, SHA_384, X25519, createCryptoSessionId, } from "./types.js";
 export { assertNever, createId } from "./utils.js";
+export { rawPrivateToPkcs8, pkcs8ToRaw, rawPublicToSpki, spkiToRaw } from "./x25519/index.js";
 //# sourceMappingURL=index.js.map
