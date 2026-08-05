@@ -5,6 +5,9 @@
  * CryptoProvider contract. These primitives are shared by the NodeCryptoProvider
  * methods and the concrete AeadCipher descriptors in ciphers.ts, so neither module
  * imports node:crypto directly for AEAD.
+ *
+ * @module
+ * @since 0.1.0
  */
 
 import { createCipheriv, createDecipheriv, type CipherCCM, type CipherCCMOptions, type CipherCCMTypes, type CipherChaCha20Poly1305Types, type CipherGCM, type CipherGCMTypes, type DecipherCCM, type DecipherGCM } from "node:crypto";
@@ -22,7 +25,12 @@ const AEAD_TAG_LENGTH = 16;
  */
 type AeadAlgorithmName = CipherGCMTypes | CipherCCMTypes | CipherChaCha20Poly1305Types;
 
-/** Map a branded {@link SymmetricCipherId} to the algorithm string node:crypto expects. */
+/**
+ * Map a branded {@link SymmetricCipherId} to the algorithm string node:crypto expects.
+ *
+ * @param cipher The branded cipher identifier.
+ * @returns The node:crypto algorithm string (e.g. `"aes-128-gcm"`).
+ */
 function aeadAlgorithmName(cipher: SymmetricCipherId): AeadAlgorithmName {
     switch (cipher) {
         case "AES-128-GCM":
@@ -39,9 +47,14 @@ function aeadAlgorithmName(cipher: SymmetricCipherId): AeadAlgorithmName {
 }
 
 /**
- * Per-cipher node:crypto options. AES-CCM requires an explicit `authTagLength`
- * (TLS 1.3 uses the full 16-byte tag); GCM and ChaCha20-Poly1305 use node's
- * default tag length, so they pass no options.
+ * Per-cipher node:crypto options.
+ *
+ * AES-CCM requires an explicit `authTagLength` (TLS 1.3 uses the full 16-byte
+ * tag); GCM and ChaCha20-Poly1305 use node's default tag length, so they pass
+ * no options.
+ *
+ * @param cipher The branded cipher identifier.
+ * @returns Options for `createCipheriv`/`createDecipheriv`, or `undefined`.
  */
 function aeadCipherOptions(cipher: SymmetricCipherId): CipherCCMOptions | undefined {
     switch (cipher) {
@@ -57,8 +70,16 @@ function aeadCipherOptions(cipher: SymmetricCipherId): CipherCCMOptions | undefi
 }
 
 /**
- * Run the node:crypto AEAD step on a constructed cipher. Shared by encrypt and
- * decrypt: set the AAD, push the data, finalize, and append the auth tag.
+ * Run the node:crypto AEAD step on a constructed cipher.
+ *
+ * Shared by encrypt and decrypt: set the AAD, push the data, finalize, and
+ * append the auth tag. Returns a standalone copy (not a view over node's
+ * internal Buffer pool).
+ *
+ * @param cipher The constructed node:crypto cipher.
+ * @param data   Data to encrypt.
+ * @param aad    Additional authenticated data.
+ * @returns Ciphertext with the auth tag appended.
  */
 function runCipher(
     cipher: CipherGCM | CipherCCM,
@@ -80,13 +101,37 @@ function runCipher(
 }
 
 /**
- * AEAD-encrypt with a node:crypto cipher. Returns ciphertext with the 16-byte
- * authentication tag appended, matching the CryptoProvider contract.
+ * AEAD-encrypt with a node:crypto cipher.
  *
+ * Returns ciphertext with the 16-byte authentication tag appended, matching
+ * the {@link CryptoProvider} contract.
+ *
+ * @remarks
  * The options argument is passed conditionally: AES-CCM requires an explicit
  * `authTagLength`, while GCM and ChaCha20-Poly1305 use node's default. Passing
  * `undefined` explicitly trips up TypeScript's overload resolution for
  * `createCipheriv`, so we branch on the options presence instead.
+ *
+ * @param cipher    The AEAD cipher to use.
+ * @param key       Symmetric key (exact size per cipher — see {@link AeadCipher.keySize}).
+ * @param nonce     Initialization vector (exact size per cipher — see {@link AeadCipher.nonceSize}).
+ * @param plaintext Data to encrypt.
+ * @param aad       Additional authenticated data (not encrypted).
+ * @returns Ciphertext with the 16-byte tag appended.
+ *
+ * @example
+ * ```ts
+ * const ciphertext = aeadEncrypt(
+ *   AES_256_GCM,
+ *   key,       // 32 bytes
+ *   nonce,     // 12 bytes
+ *   plaintext,
+ *   aad
+ * );
+ * // ciphertext.length === plaintext.length + 16
+ * ```
+ *
+ * @since 0.1.0
  */
 export function aeadEncrypt(
     cipher: SymmetricCipherId,
@@ -104,8 +149,29 @@ export function aeadEncrypt(
 }
 
 /**
- * AEAD-decrypt with a node:crypto cipher. Expects ciphertext with the 16-byte
- * tag appended. Throws {@link DecryptError} on authentication failure.
+ * AEAD-decrypt with a node:crypto cipher.
+ *
+ * Expects ciphertext with the 16-byte tag appended. Throws {@link DecryptError}
+ * on authentication failure (wrong key, tampered ciphertext, or corrupt tag).
+ *
+ * @param cipher    The AEAD cipher to use.
+ * @param key       Symmetric key (exact size per cipher — see {@link AeadCipher.keySize}).
+ * @param nonce     Initialization vector (exact size per cipher — see {@link AeadCipher.nonceSize}).
+ * @param ciphertextAndTag Ciphertext with the 16-byte tag appended.
+ * @param aad       Additional authenticated data that was passed to encrypt.
+ * @returns Decrypted plaintext.
+ * @throws {@link DecryptError} on authentication failure or if the input is shorter than the tag.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   const plaintext = aeadDecrypt(AES_256_GCM, key, nonce, ciphertext, aad);
+ * } catch (e) {
+ *   if (e instanceof DecryptError) { throw e; }
+ * }
+ * ```
+ *
+ * @since 0.1.0
  */
 export function aeadDecrypt(
     cipher: SymmetricCipherId,
