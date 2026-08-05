@@ -165,8 +165,10 @@ function readDerTag(buf: Uint8Array, offset: number, expectedTag: number): DerVa
  */
 function expectBytesEqual(actual: Uint8Array, expected: Uint8Array, label: string): void {
     for (let i = 0; i < actual.length; i++) {
-        const actualByte = actual[i];
-        const expectedByte = expected[i];
+        // Lengths are equal (enforced by callers), so both lookups succeed —
+        // the non-null assertion satisfies the strict type checker.
+        const actualByte = actual[i]!;
+        const expectedByte = expected[i]!;
         if (actualByte !== expectedByte) {
             throw new Error(
                 `${label}: byte ${i} mismatch — expected 0x${expectedByte.toString(16).padStart(2, "0")}, got 0x${actualByte.toString(16).padStart(2, "0")}`,
