@@ -160,15 +160,20 @@ function readDerTag(buf: Uint8Array, offset: number, expectedTag: number): DerVa
 
 /**
  * Verify that `actual` equals the expected bytes. Used to validate the OID and
- * other fixed fields we don't need to pass around. Callers must ensure
- * `actual.length === expected.length` before invoking.
+ * other fixed fields we don't need to pass around.
  */
 function expectBytesEqual(actual: Uint8Array, expected: Uint8Array, label: string): void {
+    if (actual.length !== expected.length) {
+        throw new Error(`${label}: expected ${expected.length} bytes, got ${actual.length}`);
+    }
     for (let i = 0; i < actual.length; i++) {
-        // Lengths are equal (enforced by callers), so both lookups succeed —
-        // the type assertion satisfies the strict type checker without a lint error.
-        const actualByte = actual[i] as number;
-        const expectedByte = expected[i] as number;
+        const actualByte = actual[i];
+        const expectedByte = expected[i];
+        if (actualByte === undefined || expectedByte === undefined) {
+            // Lengths are equal, so this is unreachable — but the type system
+            // can't prove it. Bail defensively.
+            throw new Error(`${label}: index ${i} out of bounds`);
+        }
         if (actualByte !== expectedByte) {
             throw new Error(
                 `${label}: byte ${i} mismatch — expected 0x${expectedByte.toString(16).padStart(2, "0")}, got 0x${actualByte.toString(16).padStart(2, "0")}`,
@@ -299,6 +304,13 @@ export function pkcs8ToRaw(der: Uint8Array): Uint8Array {
         );
     }
 
+    // 6. No trailing bytes after the outer SEQUENCE.
+    if (outer.offset + outer.length !== der.length) {
+        throw new Error(
+            `pkcs8ToRaw: trailing bytes after outer SEQUENCE (${der.length - (outer.offset + outer.length)} bytes)`,
+        );
+    }
+
     // Return a copy so callers can mutate without touching the DER container.
     return der.subarray(innerOctet.offset, innerOctet.offset + innerOctet.length).slice();
 }
@@ -360,6 +372,13 @@ export function spkiToRaw(der: Uint8Array): Uint8Array {
     if (unusedBits !== 0x00) {
         throw new Error(
             `spkiToRaw: BIT STRING must have 0 unused bits, got ${unusedBits}`,
+        );
+    }
+
+    // 4. No trailing bytes after the outer SEQUENCE.
+    if (outer.offset + outer.length !== der.length) {
+        throw new Error(
+            `spkiToRaw: trailing bytes after outer SEQUENCE (${der.length - (outer.offset + outer.length)} bytes)`,
         );
     }
 
