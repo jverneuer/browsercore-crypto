@@ -23,6 +23,7 @@
     },
     "files": [
         "dist",
+        "bin",
         "LICENSE",
         "README.md"
     ],
@@ -37,6 +38,7 @@
         "typecheck": "tsc -p tsconfig.json --noEmit",
         "test": "vitest run",
         "lint": "oxlint --type-aware src/",
+        "coverage-md": "./bin/coverage-md.mjs",
         "docs": "codedoc build"
     },
     "devDependencies": {
