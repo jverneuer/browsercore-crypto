@@ -160,20 +160,13 @@ function readDerTag(buf: Uint8Array, offset: number, expectedTag: number): DerVa
 
 /**
  * Verify that `actual` equals the expected bytes. Used to validate the OID and
- * other fixed fields we don't need to pass around.
+ * other fixed fields we don't need to pass around. Callers must ensure
+ * `actual.length === expected.length` before invoking.
  */
 function expectBytesEqual(actual: Uint8Array, expected: Uint8Array, label: string): void {
-    if (actual.length !== expected.length) {
-        throw new Error(`${label}: expected ${expected.length} bytes, got ${actual.length}`);
-    }
     for (let i = 0; i < actual.length; i++) {
         const actualByte = actual[i];
         const expectedByte = expected[i];
-        if (actualByte === undefined || expectedByte === undefined) {
-            // Lengths are equal, so this is unreachable — but the type system
-            // can't prove it. Bail defensively.
-            throw new Error(`${label}: index ${i} out of bounds`);
-        }
         if (actualByte !== expectedByte) {
             throw new Error(
                 `${label}: byte ${i} mismatch — expected 0x${expectedByte.toString(16).padStart(2, "0")}, got 0x${actualByte.toString(16).padStart(2, "0")}`,
@@ -301,13 +294,6 @@ export function pkcs8ToRaw(der: Uint8Array): Uint8Array {
     if (innerOctet.length !== RAW_KEY_LENGTH) {
         throw new Error(
             `pkcs8ToRaw: inner OCTET STRING must be ${RAW_KEY_LENGTH} bytes, got ${innerOctet.length}`,
-        );
-    }
-
-    // 6. No trailing bytes after the outer SEQUENCE.
-    if (outer.offset + outer.length !== der.length) {
-        throw new Error(
-            `pkcs8ToRaw: trailing bytes after outer SEQUENCE (${der.length - (outer.offset + outer.length)} bytes)`,
         );
     }
 
