@@ -15,12 +15,28 @@
  *    (the full-length tag TLS 1.3 uses).
  *  - ChaCha20-Poly1305 (RFC 8439): key = 32 bytes (256-bit); nonce = 12 bytes
  *    (96-bit IETF variant); Poly1305 tag = 16 bytes.
+ *
+ * @module
+ * @since 0.1.0
  */
 
 import { aeadDecrypt, aeadEncrypt } from "./crypto.js";
 import { AES_128_GCM, AES_128_CCM, AES_256_GCM, CHACHA20_POLY1305, type AeadCipher, type SymmetricCipherId } from "./types.js";
 
-/** AES-128-GCM: 16-byte key, 12-byte nonce, 16-byte tag (NIST SP 800-38D). */
+/**
+ * AES-128-GCM cipher descriptor.
+ *
+ * 16-byte key, 12-byte nonce, 16-byte tag (NIST SP 800-38D).
+ *
+ * @example
+ * ```ts
+ * const { keySize, nonceSize, tagSize } = aes128Gcm;
+ * // keySize = 16, nonceSize = 12, tagSize = 16
+ * ```
+ *
+ * @see {@link CIPHER_BY_ID} for the indexed cipher table.
+ * @since 0.1.0
+ */
 export const aes128Gcm: AeadCipher = {
     id: AES_128_GCM,
     keySize: 16,
@@ -34,7 +50,14 @@ export const aes128Gcm: AeadCipher = {
     },
 };
 
-/** AES-256-GCM: 32-byte key, 12-byte nonce, 16-byte tag (NIST SP 800-38D). */
+/**
+ * AES-256-GCM cipher descriptor.
+ *
+ * 32-byte key, 12-byte nonce, 16-byte tag (NIST SP 800-38D).
+ *
+ * @see {@link CIPHER_BY_ID} for the indexed cipher table.
+ * @since 0.1.0
+ */
 export const aes256Gcm: AeadCipher = {
     id: AES_256_GCM,
     keySize: 32,
@@ -48,7 +71,14 @@ export const aes256Gcm: AeadCipher = {
     },
 };
 
-/** AES-128-CCM: 16-byte key, 12-byte nonce, 16-byte tag (RFC 6655 / NIST SP 800-38C). */
+/**
+ * AES-128-CCM cipher descriptor.
+ *
+ * 16-byte key, 12-byte nonce, 16-byte tag (RFC 6655 / NIST SP 800-38C).
+ *
+ * @see {@link CIPHER_BY_ID} for the indexed cipher table.
+ * @since 0.1.0
+ */
 export const aes128Ccm: AeadCipher = {
     id: AES_128_CCM,
     keySize: 16,
@@ -62,7 +92,14 @@ export const aes128Ccm: AeadCipher = {
     },
 };
 
-/** ChaCha20-Poly1305: 32-byte key, 12-byte nonce, 16-byte tag (RFC 8439). */
+/**
+ * ChaCha20-Poly1305 cipher descriptor.
+ *
+ * 32-byte key, 12-byte nonce, 16-byte tag (RFC 8439).
+ *
+ * @see {@link CIPHER_BY_ID} for the indexed cipher table.
+ * @since 0.1.0
+ */
 export const chacha20Poly1305: AeadCipher = {
     id: CHACHA20_POLY1305,
     keySize: 32,
@@ -78,8 +115,18 @@ export const chacha20Poly1305: AeadCipher = {
 
 /**
  * Every supported {@link AeadCipher}, indexed by {@link SymmetricCipherId}.
+ *
  * `satisfies` checks that every branded id maps to a descriptor (so adding a
- * cipher forces an entry here) while preserving the literal key types.
+ * cipher forces an entry here) while preserving the literal key types. This is
+ * the canonical lookup table for resolving a cipher id to its parameters.
+ *
+ * @example
+ * ```ts
+ * const cipher = CIPHER_BY_ID[AES_256_GCM];
+ * const key = crypto.randomBytes(cipher.keySize);
+ * ```
+ *
+ * @since 0.1.0
  */
 export const CIPHER_BY_ID = {
     [AES_128_GCM]: aes128Gcm,
