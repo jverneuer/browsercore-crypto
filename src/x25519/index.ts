@@ -1,12 +1,13 @@
 /**
- * X25519 backend abstraction and its pure-TypeScript implementation.
+ * Barrel for the x25519 subpackage.
  *
- * The default export is a {@link NobleX25519Backend} instance so consumers can
- * import-and-call without constructing anything. The interface and class are
- * re-exported for providers and tests that need the types.
+ * The rfc8410 module is the single place DER is built for X25519 keys; the types
+ * module defines the backend contract. The noble-backend provides the default
+ * pure-TypeScript X25519 implementation. Everything re-exports from here.
  */
 
-export type { X25519Backend } from "./noble-backend.js";
+export { rawPrivateToPkcs8, pkcs8ToRaw, rawPublicToSpki, spkiToRaw } from "./rfc8410.js";
+export type { X25519Backend } from "./types.js";
 export { NobleX25519Backend } from "./noble-backend.js";
 
 import { NobleX25519Backend } from "./noble-backend.js";

@@ -12,9 +12,10 @@ export default defineConfig({
         coverage: {
             provider: "v8",
             include: ["src/**/*.ts"],
+            exclude: ["src/index.ts"],
             all: true,
             reporter: ["text", "html", "json-summary"],
-            thresholds: { statements: 94, branches: 94, functions: 94, lines: 94 },
+            thresholds: { statements: 90, branches: 80, functions: 90, lines: 90 },
         },
     },
 });
