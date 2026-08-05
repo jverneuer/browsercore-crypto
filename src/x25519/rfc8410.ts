@@ -363,6 +363,13 @@ export function spkiToRaw(der: Uint8Array): Uint8Array {
         );
     }
 
+    // 4. No trailing bytes after the outer SEQUENCE.
+    if (outer.offset + outer.length !== der.length) {
+        throw new Error(
+            `spkiToRaw: trailing bytes after outer SEQUENCE (${der.length - (outer.offset + outer.length)} bytes)`,
+        );
+    }
+
     // Return the 32 bytes after the "unused bits" prefix — a copy so callers
     // can mutate without touching the DER container.
     return der.subarray(bitString.offset + 1, bitString.offset + 1 + RAW_KEY_LENGTH).slice();
