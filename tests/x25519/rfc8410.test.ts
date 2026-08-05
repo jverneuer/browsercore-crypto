@@ -236,6 +236,20 @@ describe("decode rejects malformed PKCS#8", () => {
         bad[8] = 0x04;
         expect(() => pkcs8ToRaw(bad)).toThrow(/OID must be 3 bytes/);
     });
+
+    it("rejects a buffer whose outer SEQUENCE length does not match DER size", () => {
+        const bad = RFC8410_PKCS8_DER.slice();
+        // Offset 1 holds the outer SEQUENCE length byte (0x2e = 46). Change to 0x2d.
+        bad[1] = 0x2d;
+        expect(() => pkcs8ToRaw(bad)).toThrow(/outer SEQUENCE length/);
+    });
+
+    it("rejects a buffer with a non-zero version INTEGER", () => {
+        const bad = RFC8410_PKCS8_DER.slice();
+        // Offset 4 holds the version byte (0x00). Change to 0x01.
+        bad[4] = 0x01;
+        expect(() => pkcs8ToRaw(bad)).toThrow(/version INTEGER/);
+    });
 });
 
 describe("decode rejects malformed SPKI", () => {
