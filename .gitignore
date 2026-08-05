@@ -1,16 +1,1 @@
-# Build output
-dist/
-*.tsbuildinfo
-
-# Dependencies
-node_modules/
-
-# Coverage
-coverage/
-*.log
-
-# OS
-.DS_Store
-
-# Docs
 docs/
