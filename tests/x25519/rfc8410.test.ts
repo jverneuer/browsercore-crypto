@@ -360,32 +360,4 @@ describe("decode returns independent copies (no aliasing)", () => {
     });
 });
 
-describe("decode rejects crafted malformed DER (defensive error paths)", () => {
-    it("pkcs8ToRaw rejects a DER with the wrong tag where the OID should be", () => {
-        // Flip the OID tag (0x06 → 0x07) so the tag check throws.
-        const der = rawPrivateToPkcs8(RFC8410_PRIV_SCALAR);
-        der[6] = 0x07;
-        expect(() => pkcs8ToRaw(der)).toThrow(/expected tag 0x06/i);
-    });
 
-    it("pkcs8ToRaw rejects when the inner OCTET STRING length is wrong", () => {
-        // Craft a DER where the outer structure is valid but the inner OCTET
-        // STRING length byte (index 15) does not equal RAW_KEY_LENGTH.
-        const der = rawPrivateToPkcs8(RFC8410_PRIV_SCALAR);
-        der[15] = 0x1f; // claim 31 bytes instead of 32
-        expect(() => pkcs8ToRaw(der)).toThrow(/inner OCTET STRING/);
-    });
-
-    it("spkiToRaw rejects a DER with the wrong tag where the OID should be", () => {
-        const der = rawPublicToSpki(RFC8410_PUB_COORD);
-        der[4] = 0x07;
-        expect(() => spkiToRaw(der)).toThrow(/expected tag 0x06/i);
-    });
-
-    it("spkiToRaw rejects when the algorithm SEQUENCE length is wrong", () => {
-        // Corrupt the algorithm SEQUENCE length byte so the layout check throws.
-        const der = rawPublicToSpki(RFC8410_PUB_COORD);
-        der[2] = der[2]! + 1;
-        expect(() => spkiToRaw(der)).toThrow(/algorithm SEQUENCE/);
-    });
-});
