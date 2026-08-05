@@ -143,4 +143,14 @@ export interface CryptoProvider {
         signature: Uint8Array,
         data: Uint8Array,
     ): boolean;
+
+    /**
+     * AES-ECB encrypt a single 16-byte block. Used by QUIC header protection
+     * (RFC 9001 §5.4.1) — `aesEcbEncrypt(hp_key, sample)` produces the 5-byte
+     * mask applied to the packet number length and first byte of the header.
+     *
+     * Only the AES-128 and AES-256 key sizes (16/32 bytes) are valid; the
+     * input block is always 16 bytes and the output is always 16 bytes.
+     */
+    aesEcbEncrypt(key: Uint8Array, block: Uint8Array): Uint8Array;
 }
