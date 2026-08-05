@@ -250,6 +250,30 @@ describe("decode rejects malformed PKCS#8", () => {
         bad[4] = 0x01;
         expect(() => pkcs8ToRaw(bad)).toThrow(/version INTEGER/);
     });
+
+    it("rejects DER with indefinite-length encoding (BER, not DER)", () => {
+        const bad = RFC8410_PKCS8_DER.slice();
+        // Offset 1 holds the outer SEQUENCE length byte (0x2e). 0x80 = indefinite-length.
+        bad[1] = 0x80;
+        expect(() => pkcs8ToRaw(bad)).toThrow(/indefinite-length/);
+    });
+
+    it("rejects DER with a non-canonical long-form length (leading zero byte)", () => {
+        const bad = RFC8410_PKCS8_DER.slice();
+        // Change outer SEQUENCE from short-form (0x2e) to long-form with a
+        // leading zero: 0x82 = long-form, 2 bytes; 0x00 0x2e = non-canonical length.
+        bad[1] = 0x82;
+        bad[2] = 0x00; // leading zero makes it non-canonical
+        bad[3] = 0x2e;
+        expect(() => pkcs8ToRaw(bad)).toThrow(/non-canonical DER length/);
+    });
+
+    it("rejects DER with an unsupported long-form length (> 4 bytes)", () => {
+        const bad = RFC8410_PKCS8_DER.slice();
+        // 0x85 = long-form, 5 length bytes (max supported is 4).
+        bad[1] = 0x85;
+        expect(() => pkcs8ToRaw(bad)).toThrow(/unsupported long-form length/);
+    });
 });
 
 describe("decode rejects malformed SPKI", () => {
@@ -311,6 +335,23 @@ describe("decode rejects malformed SPKI", () => {
         // Offset 1 holds the outer SEQUENCE length byte (0x2a = 42). Change to 0x29.
         bad[1] = 0x29;
         expect(() => spkiToRaw(bad)).toThrow(/outer SEQUENCE length/);
+    });
+
+    it("rejects SPKI DER with indefinite-length encoding (BER, not DER)", () => {
+        const bad = RFC8410_SPKI_DER.slice();
+        // Offset 1 holds the outer SEQUENCE length byte (0x2a). 0x80 = indefinite-length.
+        bad[1] = 0x80;
+        expect(() => spkiToRaw(bad)).toThrow(/indefinite-length/);
+    });
+
+    it("rejects SPKI DER with a non-canonical long-form length (leading zero byte)", () => {
+        const bad = RFC8410_SPKI_DER.slice();
+        // Change outer SEQUENCE from short-form (0x2a) to long-form with a
+        // leading zero: 0x82 = long-form, 2 bytes; 0x00 0x2a = non-canonical length.
+        bad[1] = 0x82;
+        bad[2] = 0x00; // leading zero makes it non-canonical
+        bad[3] = 0x2a;
+        expect(() => spkiToRaw(bad)).toThrow(/non-canonical DER length/);
     });
 });
 
