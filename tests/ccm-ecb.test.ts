@@ -13,7 +13,7 @@
 import { createCipheriv, generateKeyPairSync } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import type { CipherCCM } from "node:crypto";
-import { aeadEncrypt, NodeCryptoProvider } from "../src/crypto.js";
+import { aeadDecrypt, aeadEncrypt, NodeCryptoProvider } from "../src/crypto.js";
 import { aes128Ccm, CIPHER_BY_ID } from "../src/ciphers.js";
 import { DecryptError } from "../src/errors.js";
 import { AES_128_CCM, type Aes128CcmId, type EcdhCurve } from "../src/types.js";
@@ -203,25 +203,39 @@ describe("AES-ECB single-block (QUIC header protection)", () => {
 // ---------------------------------------------------------------------------
 
 /**
- * aeadAlgorithmName and aeadCipherOptions switch over SymmetricCipherId with an
- * assertNever default. Feeding a cast invalid id exercises both defaults — the
- * aeadCipherOptions guard was never hit by the existing suite (the algorithm
- * name throws first in aeadEncrypt, but aeadCipherOptions is independently
- * reachable via aeadDecrypt after the length check passes).
+ * aeadCipherConfig switches over SymmetricCipherId with an assertNever default.
+ * Both the algorithm name and the per-cipher options come from one switch, so
+ * the guard is reachable from the public API through aeadEncrypt/aeadDecrypt —
+ * unlike the prior two-function design where the second guard was dead code.
  */
-describe("aeadCipherOptions assertNever guard", () => {
-    it("aeadEncrypt throws on an invalid cipher id (assertNever in aeadAlgorithmName)", () => {
-        // aeadAlgorithmName and aeadCipherOptions both switch over
-        // SymmetricCipherId with an assertNever default. In aeadEncrypt,
-        // aeadAlgorithmName runs first and throws on an unrecognized id — so the
-        // aeadCipherOptions default is provably unreachable through the public
-        // API. We document that intent here and cover the algorithm-name guard,
-        // which throws /Unexpected value/ for the cast invalid id. (The analogous
-        // default in crypto.test.ts repeats this for exhaustiveness.)
+describe("aeadCipherConfig assertNever guard", () => {
+    it("aeadEncrypt throws on an invalid cipher id (assertNever in aeadCipherConfig)", () => {
+        // aeadCipherConfig switches over SymmetricCipherId with an assertNever
+        // default. Feeding a cast invalid id exercises that guard — it throws
+        // /Unexpected value/ for the cast invalid id. The analogous default in
+        // crypto.test.ts repeats this for exhaustiveness.
         const key = new Uint8Array(16);
         const nonce = new Uint8Array(12);
         expect(() =>
             aeadEncrypt("BOGUS" as unknown as Aes128CcmId, key, nonce, new Uint8Array(0), new Uint8Array(0)),
+        ).toThrow(/Unexpected value/);
+    });
+
+    it("aeadDecrypt throws on an invalid cipher id (assertNever in aeadCipherConfig)", () => {
+        // aeadDecrypt reaches aeadCipherConfig after the length check — feed a
+        // cast invalid id with a ciphertext long enough to pass that check so
+        // the assertNever guard is the one that fires.
+        const key = new Uint8Array(16);
+        const nonce = new Uint8Array(12);
+        const ciphertextAndTag = new Uint8Array(32);
+        expect(() =>
+            aeadDecrypt(
+                "BOGUS" as unknown as Aes128CcmId,
+                key,
+                nonce,
+                ciphertextAndTag,
+                new Uint8Array(0),
+            ),
         ).toThrow(/Unexpected value/);
     });
 });
