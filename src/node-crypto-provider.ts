@@ -33,6 +33,7 @@ import { assertNever } from "./utils.js";
 import { aeadEncrypt, aeadDecrypt } from "./aead.js";
 import { defaultX25519Backend } from "./x25519/index.js";
 import type { CryptoProvider } from "./provider.js";
+import type { X25519Backend } from "./x25519/types.js";
 
 /**
  * Map a branded {@link HashId} to the algorithm string Node's `node:crypto`
@@ -51,6 +52,8 @@ function hashAlgorithmName(hash: HashId): string {
 }
 
 export class NodeCryptoProvider implements CryptoProvider {
+    constructor(private readonly x25519: X25519Backend = defaultX25519Backend) {}
+
     public randomBytes(length: number): Uint8Array {
         return nodeRandomBytes(length);
     }
@@ -159,7 +162,7 @@ export class NodeCryptoProvider implements CryptoProvider {
         // applies RFC 7748 §5 clamping internally, removing the DER/ASN.1 bug
         // class that plagued the old node:crypto KeyObject path.
         const secretKey = this.randomBytes(32);
-        const publicKey = defaultX25519Backend.publicKey(secretKey);
+        const publicKey = this.x25519.publicKey(secretKey);
         return { publicKey, secretKey };
     }
 
@@ -167,7 +170,7 @@ export class NodeCryptoProvider implements CryptoProvider {
         // Delegate to the default X25519 backend. The noble-curves backend
         // handles the RFC 7748 §5 degenerate (all-zero) u-coordinate correctly,
         // returning the mandated 32 zero bytes — no special-casing needed.
-        return defaultX25519Backend.sharedSecret(secretKey, peerPublicKey);
+        return this.x25519.sharedSecret(secretKey, peerPublicKey);
     }
 
     public verifySignature(
