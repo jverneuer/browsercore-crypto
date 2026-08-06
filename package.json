@@ -52,7 +52,6 @@
         "node": ">=26.0.0"
     },
     "dependencies": {
-        "@noble/curves": "^1.9.7",
-        "ts-log": "^3.0.2"
+        "@noble/curves": "^1.9.7"
     }
 }
