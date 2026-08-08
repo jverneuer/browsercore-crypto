@@ -10,7 +10,6 @@
 export { rawPrivateToPkcs8, pkcs8ToRaw, rawPublicToSpki, spkiToRaw } from "./rfc8410.js";
 export type { X25519Backend } from "./types.js";
 export { NobleX25519Backend } from "./noble-backend.js";
-export { NodeX25519Backend } from "./node-backend.js";
 
 import { NobleX25519Backend } from "./noble-backend.js";
 
