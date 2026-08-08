@@ -81,7 +81,7 @@ const SPKI_DER_LENGTH = SPKI_PREFIX.length + RAW_KEY_LENGTH; // 44
 // We don't pull in a full ASN.1 library; the X25519 containers are tiny,
 // fixed-layout, and only need shallow parsing (read tag, read length, advance
 // a cursor). The parser is strict — DER only (no indefinite-length encodings,
-// no trailing bytes) — matching what node:crypto expects.
+// no trailing bytes) — the strict canonical form any backend accepts.
 // ---------------------------------------------------------------------------
 
 /** The result of reading one DER TLV: where the value starts and how long it is. */
