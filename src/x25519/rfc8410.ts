@@ -97,10 +97,10 @@ function readDerLength(buf: Uint8Array, offset: number): { valueOffset: number; 
     if (offset >= buf.length) {
         throw new Error("DER decode: truncated buffer reading length");
     }
-    const first = buf[offset];
-    if (first === undefined) {
-        throw new Error("DER decode: truncated buffer reading length");
-    }
+    // Bounds check above guarantees this index is in range — the `as number`
+    // cast narrows the `no-unchecked-indexed-access` widened type without a
+    // runtime branch (a Uint8Array never yields `undefined` in range).
+    const first = buf[offset] as number;
     if (first < 0x80) {
         // Short form: single-byte length, value follows immediately.
         return { valueOffset: offset + 1, length: first };
@@ -119,10 +119,8 @@ function readDerLength(buf: Uint8Array, offset: number): { valueOffset: number; 
     }
     let length = 0;
     for (let i = 0; i < numLengthBytes; i++) {
-        const byte = buf[offset + 1 + i];
-        if (byte === undefined) {
-            throw new Error("DER decode: truncated buffer reading long-form length");
-        }
+        // Bounds check above guarantees this index is in range.
+        const byte = buf[offset + 1 + i] as number;
         length = (length << 8) | byte;
     }
     // DER mandates the shortest encoding; a leading zero byte is non-canonical.
@@ -143,12 +141,8 @@ function readDerTag(buf: Uint8Array, offset: number, expectedTag: number): DerVa
             `DER decode: expected tag 0x${expectedTag.toString(16).padStart(2, "0")} at offset ${offset}, got end of buffer`,
         );
     }
-    const tag = buf[offset];
-    if (tag === undefined) {
-        throw new Error(
-            `DER decode: expected tag 0x${expectedTag.toString(16).padStart(2, "0")} at offset ${offset}, got end of buffer`,
-        );
-    }
+    // Bounds check above guarantees this index is in range.
+    const tag = buf[offset] as number;
     if (tag !== expectedTag) {
         throw new Error(
             `DER decode: expected tag 0x${expectedTag.toString(16).padStart(2, "0")} at offset ${offset}, got 0x${tag.toString(16).padStart(2, "0")}`,
