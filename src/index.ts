@@ -49,5 +49,5 @@ export {
 export { assertNever, createId } from "./utils.js";
 
 export { rawPrivateToPkcs8, pkcs8ToRaw, rawPublicToSpki, spkiToRaw } from "./x25519/index.js";
-export { NobleX25519Backend, defaultX25519Backend } from "./x25519/index.js";
+export { NobleX25519Backend } from "./x25519/index.js";
 export type { X25519Backend } from "./x25519/index.js";

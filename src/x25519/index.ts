@@ -9,11 +9,3 @@
 export { rawPrivateToPkcs8, pkcs8ToRaw, rawPublicToSpki, spkiToRaw } from "./rfc8410.js";
 export type { X25519Backend } from "./types.js";
 export { NobleX25519Backend } from "./noble-backend.js";
-
-import { NobleX25519Backend } from "./noble-backend.js";
-
-/**
- * Default X25519 backend instance — pure TypeScript, no node:crypto.
- * Use this unless you have a specific reason to swap the implementation.
- */
-export const defaultX25519Backend = new NobleX25519Backend();

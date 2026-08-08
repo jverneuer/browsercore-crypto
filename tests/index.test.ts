@@ -2,9 +2,9 @@
  * Tests for the @browsercore/crypto barrel (src/index.ts).
  *
  * The barrel re-exports types, errors, constants, the x25519 DER helpers, and
- * the default X25519 backend. This test exercises the barrel so the re-export
- * surface (and the `defaultX25519Backend` instantiation) is covered, and
- * confirms the public API resolves to the expected concrete values.
+ * the X25519 backend class. This test exercises the barrel so the re-export
+ * surface is covered, and confirms the public API resolves to the expected
+ * concrete values.
  */
 
 import { describe, expect, it } from "vitest";
@@ -23,7 +23,6 @@ import {
     assertNever,
     createCryptoSessionId,
     createId,
-    defaultX25519Backend,
     ensureCryptoError,
     pkcs8ToRaw,
     rawPrivateToPkcs8,
@@ -61,14 +60,13 @@ describe("barrel re-exports resolve", () => {
         expect(spkiToRaw).toBeInstanceOf(Function);
     });
 
-    it("re-exports the X25519 backend class and a live default instance", () => {
+    it("re-exports the X25519 backend class", () => {
         expect(NobleX25519Backend).toBeInstanceOf(Function);
-        expect(defaultX25519Backend).toBeInstanceOf(NobleX25519Backend);
     });
 
-    it("the default backend derives a 32-byte public coordinate", () => {
+    it("a fresh backend derives a 32-byte public coordinate", () => {
         const scalar = new Uint8Array(32);
         scalar[0] = 7;
-        expect(defaultX25519Backend.publicKey(scalar)).toHaveLength(32);
+        expect(new NobleX25519Backend().publicKey(scalar)).toHaveLength(32);
     });
 });
