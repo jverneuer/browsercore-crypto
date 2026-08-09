@@ -3,9 +3,9 @@
  *
  * This module is intentionally free of any `node:crypto` import — raw 32-byte
  * scalars in, raw 32-byte coordinates out. noble-curves handles clamping
- * internally, which removes the entire ASN.1/DER bug class that plagues the
- * Node backend (see src/x25519.ts). That makes this the recommended default
- * backend for the crypto provider.
+ * internally, which removes the entire ASN.1/DER bug class that plagues
+ * native X25519 backends. That makes this the recommended default backend for
+ * the crypto provider.
  */
 
 import { x25519 } from "@noble/curves/ed25519";

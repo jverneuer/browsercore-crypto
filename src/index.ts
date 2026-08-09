@@ -1,15 +1,16 @@
 /**
  * @browsercore/crypto — public API surface.
  *
- * A clean abstraction wrapping Node's native crypto APIs. The TLS implementation
+ * A clean abstraction wrapping crypto primitives. The TLS implementation
  * calls these methods — never `node:crypto` directly — so the backend is
  * replaceable (WebCrypto, HSM, test double).
+ *
+ * The Node-backed implementation (NodeCryptoProvider, AEAD, node-backend)
+ * lives in `browsersmith/src/platform/crypto/node/` — this package exports
+ * only pure types, errors, and utilities with zero `node:*` imports.
  */
 
-export { NodeCryptoProvider, crypto } from "./crypto.js";
 export type { CryptoProvider } from "./crypto.js";
-
-export { aes128Gcm, aes256Gcm, aes128Ccm, chacha20Poly1305, CIPHER_BY_ID } from "./ciphers.js";
 
 export {
     CryptoError,
@@ -48,4 +49,5 @@ export {
 export { assertNever, createId } from "./utils.js";
 
 export { rawPrivateToPkcs8, pkcs8ToRaw, rawPublicToSpki, spkiToRaw } from "./x25519/index.js";
+export { NobleX25519Backend } from "./x25519/index.js";
 export type { X25519Backend } from "./x25519/index.js";

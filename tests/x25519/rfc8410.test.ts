@@ -274,6 +274,19 @@ describe("decode rejects malformed PKCS#8", () => {
         bad[1] = 0x85;
         expect(() => pkcs8ToRaw(bad)).toThrow(/unsupported long-form length/);
     });
+
+    it("takes the leading-zero guard else-branch (long-form outer length, single length byte)", () => {
+        const bad = RFC8410_PKCS8_DER.slice();
+        // Encode the outer SEQUENCE length as long-form with exactly 1 length byte
+        // (0x81 = long-form, 1 byte; 0x2e = 46). Because numLengthBytes === 1, the
+        // `numLengthBytes > 1` operand is false, so the leading-zero guard takes its
+        // else-branch and readDerLength returns successfully. The extra length byte
+        // shifts the structure, so parsing fails downstream at the version INTEGER
+        // tag (offset 3 no longer holds 0x02).
+        bad[1] = 0x81;
+        bad[2] = 0x2e;
+        expect(() => pkcs8ToRaw(bad)).toThrow(/tag 0x02/);
+    });
 });
 
 describe("decode rejects malformed SPKI", () => {

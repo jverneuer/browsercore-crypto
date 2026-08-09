@@ -23,7 +23,8 @@ import type { EcdhCurve, EcdhKeyPair, HashId, X25519KeyPair } from "./types.js";
  * what keeps the TLS engine's ClientHello construction purely a function of
  * profile data, not of any backend implementation.
  *
- * @see {@link NodeCryptoProvider} for the default `node:crypto` backend.
+ * The Node-backed implementation lives in `browsersmith/src/platform/crypto/node/`
+ * — this package exports only the interface, types, errors, and utilities.
  * @since 0.1.0
  */
 export interface CryptoProvider {
@@ -159,8 +160,8 @@ export interface CryptoProvider {
     /**
      * AEAD-encrypt with AES-128-CCM.
      *
-     * CCM uses the full 16-byte tag in TLS 1.3 (set explicitly at the
-     * `node:crypto` options layer).
+     * CCM uses the full 16-byte tag in TLS 1.3 (tag length is fixed by the
+     * cipher, not negotiated).
      *
      * @param key       16-byte AES key.
      * @param nonce     12-byte initialization vector.
