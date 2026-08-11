@@ -14,12 +14,18 @@ import {
     AES_128_GCM,
     AES_256_GCM,
     CHACHA20_POLY1305,
+    MLKEM768_CIPHERTEXT_LENGTH,
+    MLKEM768_PUBLIC_KEY_LENGTH,
+    MLKEM768_SECRET_KEY_LENGTH,
+    MLKEM768_SHARED_SECRET_LENGTH,
     SHA_256,
     SHA_384,
     X25519,
     createCryptoSessionId,
     type HashId,
     type KeyExchangeId,
+    type MLKEM768Encapsulation,
+    type MLKEM768KeyPair,
     type SymmetricCipherId,
 } from "../src/types.js";
 
@@ -55,5 +61,34 @@ describe("KeyExchangeId constant", () => {
     it("exposes the X25519 token", () => {
         const ids: KeyExchangeId[] = [X25519];
         expect(ids).toEqual(["X25519"]);
+    });
+});
+
+describe("ML-KEM-768 parameter-size constants (FIPS 203)", () => {
+    it("exposes the four canonical byte lengths", () => {
+        expect(MLKEM768_PUBLIC_KEY_LENGTH).toBe(1184);
+        expect(MLKEM768_SECRET_KEY_LENGTH).toBe(2400);
+        expect(MLKEM768_CIPHERTEXT_LENGTH).toBe(1088);
+        expect(MLKEM768_SHARED_SECRET_LENGTH).toBe(32);
+    });
+});
+
+describe("ML-KEM-768 type shapes", () => {
+    it("MLKEM768KeyPair is satisfied by publicKey + secretKey", () => {
+        const kp: MLKEM768KeyPair = {
+            publicKey: new Uint8Array(MLKEM768_PUBLIC_KEY_LENGTH),
+            secretKey: new Uint8Array(MLKEM768_SECRET_KEY_LENGTH),
+        };
+        expect(kp.publicKey).toHaveLength(1184);
+        expect(kp.secretKey).toHaveLength(2400);
+    });
+
+    it("MLKEM768Encapsulation is satisfied by ciphertext + sharedSecret", () => {
+        const enc: MLKEM768Encapsulation = {
+            ciphertext: new Uint8Array(MLKEM768_CIPHERTEXT_LENGTH),
+            sharedSecret: new Uint8Array(MLKEM768_SHARED_SECRET_LENGTH),
+        };
+        expect(enc.ciphertext).toHaveLength(1088);
+        expect(enc.sharedSecret).toHaveLength(32);
     });
 });

@@ -7,7 +7,11 @@
  *
  * The Node-backed implementation (NodeCryptoProvider, AEAD, node-backend)
  * lives in `browsersmith/src/platform/crypto/node/` — this package exports
- * only pure types, errors, and utilities with zero `node:*` imports.
+ * only pure types, errors, and utilities with zero `node:*` imports. Pure
+ * TypeScript crypto backends (X25519, NIST-curve ECDH, ML-KEM-768) backed by
+ * the @noble libraries are also exported here — they carry no `node:*`
+ * dependency and are the recommended building blocks for the concrete
+ * NodeCryptoProvider in browsersmith.
  */
 
 export type { CryptoProvider } from "./crypto.js";
@@ -31,6 +35,8 @@ export {
     type EcdhKeyPair,
     type HashId,
     type KeyExchangeId,
+    type MLKEM768Encapsulation,
+    type MLKEM768KeyPair,
     type Sha256Id,
     type Sha384Id,
     type SymmetricCipherId,
@@ -43,6 +49,10 @@ export {
     SHA_256,
     SHA_384,
     X25519,
+    MLKEM768_CIPHERTEXT_LENGTH,
+    MLKEM768_PUBLIC_KEY_LENGTH,
+    MLKEM768_SECRET_KEY_LENGTH,
+    MLKEM768_SHARED_SECRET_LENGTH,
     createCryptoSessionId,
 } from "./types.js";
 
@@ -51,3 +61,9 @@ export { assertNever, createId } from "./utils.js";
 export { rawPrivateToPkcs8, pkcs8ToRaw, rawPublicToSpki, spkiToRaw } from "./x25519/index.js";
 export { NobleX25519Backend } from "./x25519/index.js";
 export type { X25519Backend } from "./x25519/index.js";
+
+export { NobleEcdhBackend } from "./ecdh/index.js";
+export type { EcdhBackend } from "./ecdh/index.js";
+
+export { NobleMlKem768Backend } from "./mlkem/index.js";
+export type { MlKem768Backend } from "./mlkem/index.js";

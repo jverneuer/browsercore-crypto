@@ -1,6 +1,6 @@
 {
     "name": "@browsercore/crypto",
-    "version": "0.2.2",
+    "version": "0.2.3",
     "description": "Clean abstraction wrapping Node's native crypto APIs. The TLS implementation calls these methods — never node:crypto directly — so the backend is replaceable.",
     "repository": {
         "type": "git",
@@ -52,6 +52,7 @@
         "node": ">=26.0.0"
     },
     "dependencies": {
-        "@noble/curves": "^1.9.7"
+        "@noble/curves": "^1.9.7",
+        "@noble/post-quantum": "^0.7.0"
     }
 }
