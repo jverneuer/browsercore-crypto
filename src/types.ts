@@ -196,6 +196,53 @@ export interface EcdhKeyPair {
 }
 
 // ---------------------------------------------------------------------------
+// ML-KEM-768 (post-quantum KEM) — FIPS 203 key exchange.
+// ---------------------------------------------------------------------------
+
+/** Public-key size for ML-KEM-768 (FIPS 203), in bytes. */
+export const MLKEM768_PUBLIC_KEY_LENGTH = 1184;
+/** Secret-key size for ML-KEM-768 (FIPS 203), in bytes. */
+export const MLKEM768_SECRET_KEY_LENGTH = 2400;
+/** Ciphertext size for ML-KEM-768 (FIPS 203), in bytes. */
+export const MLKEM768_CIPHERTEXT_LENGTH = 1088;
+/** Shared-secret size produced by ML-KEM-768, in bytes. */
+export const MLKEM768_SHARED_SECRET_LENGTH = 32;
+
+/**
+ * An ML-KEM-768 key pair (FIPS 203, formerly Kyber).
+ *
+ * Used by the TLS 1.3 `X25519MLKEM768` hybrid key-share group: the classic
+ * X25519 shared secret is concatenated with the ML-KEM-768 shared secret
+ * before being fed into the key schedule, binding classical and post-quantum
+ * security so that an attacker must break *both* primitives to recover the
+ * traffic key.
+ *
+ * @since 0.3.0
+ */
+export interface MLKEM768KeyPair {
+    /** Encapsulation key — {@link MLKEM768_PUBLIC_KEY_LENGTH} bytes. */
+    readonly publicKey: Uint8Array;
+    /** Decapsulation key — {@link MLKEM768_SECRET_KEY_LENGTH} bytes. */
+    readonly secretKey: Uint8Array;
+}
+
+/**
+ * The result of ML-KEM-768 encapsulation (the client-side KEM operation).
+ *
+ * The client produces a ciphertext to send to the server alongside the
+ * shared secret it derives locally. The server recovers the same shared
+ * secret from the ciphertext via decapsulation.
+ *
+ * @since 0.3.0
+ */
+export interface MLKEM768Encapsulation {
+    /** The ciphertext to transmit to the decapsulation key holder. */
+    readonly ciphertext: Uint8Array;
+    /** The shared secret derived on the encapsulating (client) side. */
+    readonly sharedSecret: Uint8Array;
+}
+
+// ---------------------------------------------------------------------------
 // AEAD cipher descriptor — describes the static parameters of a cipher.
 // ---------------------------------------------------------------------------
 

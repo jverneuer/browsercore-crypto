@@ -19,6 +19,8 @@ import {
     CryptoError,
     DecryptError,
     NobleX25519Backend,
+    NobleEcdhBackend,
+    NobleMlKem768Backend,
     UnsupportedAlgorithmError,
     assertNever,
     createCryptoSessionId,
@@ -68,5 +70,13 @@ describe("barrel re-exports resolve", () => {
         const scalar = new Uint8Array(32);
         scalar[0] = 7;
         expect(new NobleX25519Backend().publicKey(scalar)).toHaveLength(32);
+    });
+
+    it("re-exports the NIST-curve ECDH backend class", () => {
+        expect(NobleEcdhBackend).toBeInstanceOf(Function);
+    });
+
+    it("re-exports the ML-KEM-768 backend class", () => {
+        expect(NobleMlKem768Backend).toBeInstanceOf(Function);
     });
 });

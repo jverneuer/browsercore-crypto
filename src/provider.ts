@@ -9,7 +9,13 @@
  * @since 0.1.0
  */
 
-import type { EcdhCurve, EcdhKeyPair, HashId, X25519KeyPair } from "./types.js";
+import type {
+    EcdhCurve,
+    EcdhKeyPair,
+    HashId,
+    MLKEM768KeyPair,
+    X25519KeyPair,
+} from "./types.js";
 
 /**
  * Pure cryptographic primitive abstraction.
@@ -333,4 +339,58 @@ export interface CryptoProvider {
      * @since 0.2.0
      */
     aesEcbEncrypt(key: Uint8Array, block: Uint8Array): Uint8Array;
+
+    /**
+     * Generate an ML-KEM-768 key pair (FIPS 203, formerly Kyber).
+     *
+     * The public key (encapsulation key) is sent in the TLS 1.3
+     * `X25519MLKEM768` key-share entry; the secret key (decapsulation key)
+     * is held locally to recover the shared secret from the peer's ciphertext.
+     *
+     * @returns A fresh ML-KEM-768 key pair.
+     *
+     * @see https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.203.pdf FIPS 203
+     * @since 0.3.0
+     */
+    mlkem768GenerateKeyPair(): MLKEM768KeyPair;
+
+    /**
+     * ML-KEM-768 decapsulation — recover the shared secret from a ciphertext.
+     *
+     * The server calls this with its decapsulation key and the ciphertext
+     * received from the client. The result is the 32-byte KEM shared secret.
+     *
+     * @param secretKey  Decapsulation key from {@link mlkem768GenerateKeyPair}.
+     * @param ciphertext Ciphertext produced by the peer's encapsulation.
+     * @returns 32-byte shared secret.
+     *
+     * @see https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.203.pdf FIPS 203
+     * @since 0.3.0
+     */
+    mlkem768Decapsulate(secretKey: Uint8Array, ciphertext: Uint8Array): Uint8Array;
+
+    /**
+     * Compute the TLS 1.3 `X25519MLKEM768` hybrid shared secret.
+     *
+     * Per draft-ietf-tls-hybrid-design, the classical and post-quantum shared
+     * secrets are concatenated — `x25519_shared_secret || mlkem_shared_secret`
+     * — and the result is fed into the TLS 1.3 key schedule as the KeyShare
+     * secret. An attacker must break *both* X25519 and ML-KEM-768 to recover
+     * the traffic key.
+     *
+     * @param x25519SecretKey     32-byte local X25519 private scalar.
+     * @param x25519PeerPublicKey 32-byte remote X25519 public coordinate.
+     * @param mlkemSecretKey      ML-KEM-768 decapsulation key.
+     * @param mlkemCiphertext     ML-KEM-768 ciphertext from the peer.
+     * @returns 64-byte hybrid shared secret (32 classical || 32 post-quantum).
+     *
+     * @see https://datatracker.ietf.org/doc/draft-ietf-tls-hybrid-design/ Hybrid key exchange
+     * @since 0.3.0
+     */
+    x25519MLKEM768SharedSecret(
+        x25519SecretKey: Uint8Array,
+        x25519PeerPublicKey: Uint8Array,
+        mlkemSecretKey: Uint8Array,
+        mlkemCiphertext: Uint8Array,
+    ): Uint8Array;
 }
