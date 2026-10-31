@@ -1,6 +1,6 @@
 {
     "name": "@browsercore/crypto",
-    "version": "0.2.4",
+    "version": "0.2.5",
     "description": "Clean abstraction wrapping Node's native crypto APIs. The TLS implementation calls these methods — never node:crypto directly — so the backend is replaceable.",
     "repository": {
         "type": "git",
@@ -44,7 +44,7 @@
         "@types/node": "^26.1.2",
         "@vitest/coverage-v8": "^4.1.10",
         "oxlint": "^1.76.0",
-        "oxlint-tsgolint": "7.0.2001",
+        "oxlint-tsgolint": "7.0.2005",
         "typescript": "^5.7.3",
         "vitest": "^4.1.10"
     },
