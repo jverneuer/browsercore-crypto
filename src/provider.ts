@@ -372,11 +372,12 @@ export interface CryptoProvider {
     /**
      * Compute the TLS 1.3 `X25519MLKEM768` hybrid shared secret.
      *
-     * Per draft-ietf-tls-hybrid-design, the classical and post-quantum shared
-     * secrets are concatenated — `x25519_shared_secret || mlkem_shared_secret`
-     * — and the result is fed into the TLS 1.3 key schedule as the KeyShare
-     * secret. An attacker must break *both* X25519 and ML-KEM-768 to recover
-     * the traffic key.
+     * Per draft-ietf-tls-ecdhe-mlkem, the post-quantum and classical shared
+     * secrets are concatenated — `mlkem_shared_secret || x25519_shared_secret`
+     * (post-quantum first) — and the result is fed into the TLS 1.3 key
+     * schedule as the KeyShare secret. An attacker must break *both* X25519
+     * and ML-KEM-768 to recover the traffic key. Order verified against
+     * OpenSSL's X25519MLKEM768 peer.
      *
      * @param x25519SecretKey     32-byte local X25519 private scalar.
      * @param x25519PeerPublicKey 32-byte remote X25519 public coordinate.
