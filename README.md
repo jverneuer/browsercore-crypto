@@ -2,8 +2,9 @@
 
 
 [![npm version](https://img.shields.io/npm/v/@browsercore/crypto)](https://www.npmjs.com/package/@browsercore/crypto)
-[![coverage](https://img.shields.io/endpoint?url=https://jverneuer.github.io/browsercore-crypto/badge.json)](https://github.com/jverneuer/browsercore-crypto/blob/main/COVERAGE.md)
-[![lint](https://img.shields.io/github/actions/workflow/status/jverneuer/browsercore-crypto/ci.yml?label=lint)](https://github.com/jverneuer/browsercore-crypto/actions/workflows/ci.yml)
+[![coverage](https://img.shields.io/endpoint?url=https://jverneuer.github.io/browsercore-crypto/badge.json)](https://jverneuer.github.io/browsercore-crypto/COVERAGE.md)
+[![CI](https://img.shields.io/github/actions/workflow/status/jverneuer/browsercore-crypto/ci.yml?label=ci)](https://github.com/jverneuer/browsercore-crypto/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/@browsercore/crypto.svg)](LICENSE)
 
 The synchronous `CryptoProvider` contract, branded algorithm identifiers, typed
 errors, and pure-JavaScript key-exchange backends for the browsercore stack:
