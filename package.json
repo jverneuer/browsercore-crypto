@@ -1,6 +1,6 @@
 {
     "name": "@browsercore/crypto",
-    "version": "0.2.7",
+    "version": "0.2.8",
     "description": "Synchronous crypto-primitive contract plus pure-JS noble backends (X25519, NIST ECDH, ML-KEM-768). Sync by design \u2014 async-native WebCrypto cannot implement the interface.",
     "repository": {
         "type": "git",
@@ -35,7 +35,7 @@
         "clean": "rm -rf dist",
         "build": "tsc -p tsconfig.json",
         "prepublishOnly": "npm run clean && npm run build",
-        "typecheck": "tsc -p tsconfig.json --noEmit",
+        "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
         "test": "vitest run",
         "lint": "oxlint --type-aware src/",
         "docs": "codedoc build"
