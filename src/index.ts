@@ -3,7 +3,8 @@
  *
  * A clean abstraction wrapping crypto primitives. The TLS implementation
  * calls these methods — never `node:crypto` directly — so the backend is
- * replaceable (WebCrypto, HSM, test double).
+ * replaceable (HSM, test double, another sync native backend). The surface
+ * is synchronous, so async-only WebCrypto is NOT a valid backend.
  *
  * The Node-backed implementation (NodeCryptoProvider, AEAD, node-backend)
  * lives in `browsersmith/src/platform/crypto/node/` — this package exports
