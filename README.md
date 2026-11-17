@@ -10,13 +10,13 @@ The synchronous `CryptoProvider` contract, branded algorithm identifiers, typed
 errors, and pure-JavaScript key-exchange backends for the browsercore stack:
 X25519 and NIST-curve ECDH (`@noble/curves`) plus ML-KEM-768
 (`@noble/post-quantum`), covering the TLS 1.3 hybrid `X25519MLKEM768` group with
-zero `node:*` imports. Higher layers — especially TLS — compose exclusively
+zero `node:*` imports. Higher layers (TLS, mostly) compose exclusively
 through the `CryptoProvider` interface, never `node:crypto` directly.
 
 **The interface is synchronous by design.** Any *synchronous* backend can
 implement it: the pure-JS noble backends exported here, a `node:crypto` adapter,
-a blocking HSM client, or a wasm build with sync exports. Async-native APIs —
-WebCrypto (`SubtleCrypto`) above all — **cannot** implement it: a Promise-based
+a blocking HSM client, or a wasm build with sync exports. Async-native APIs,
+WebCrypto (`SubtleCrypto`) above all, **cannot** implement it: a Promise-based
 API cannot be served from a sync method signature. The canonical rationale lives
 in the design-decisions note shipped with
 [`@browsercore/contracts` ≥ 0.2.6](https://github.com/jverneuer/browsercore-contracts/blob/main/docs/design-decisions.md).
@@ -42,7 +42,7 @@ import {
     type CryptoProvider,
 } from "@browsercore/crypto";
 
-// Pure-JS key exchange — sync by design, zero node:* imports:
+// Pure-JS key exchange, sync by design, zero node:* imports:
 const x25519 = new NobleX25519Backend();
 const publicKey = x25519.publicKey(mySecretScalar);
 const sharedSecret = x25519.sharedSecret(mySecretScalar, peerPublicKey);
@@ -52,7 +52,7 @@ const { ciphertext, sharedSecret: pqSecret } = mlkem.encapsulate(peerMlKemKey);
 
 // Higher layers depend on the sync contract only. Implement it with any
 // SYNC backend (e.g. browsersmith's node:crypto-backed provider, a test
-// double, a blocking HSM client) — never an async-native one like WebCrypto:
+// double, a blocking HSM client), never an async-native one like WebCrypto:
 const provider: CryptoProvider = mySyncProvider;
 ```
 
@@ -120,7 +120,7 @@ npx coverage-md
 
 ## Contributing
 
-Contributions are welcome — bug reports, reproductions, docs and code alike. Start with [CONTRIBUTING.md](CONTRIBUTING.md); the full guide lives in the [browsersmith repo](https://github.com/jverneuer/browsersmith/blob/main/CONTRIBUTING.md). First timer? Check the [`good first issue`](https://github.com/jverneuer/browsercore-crypto/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) label. Security issues: [SECURITY.md](SECURITY.md), never a public issue.
+Contributions are welcome: bug reports, reproductions, docs and code alike. Start with [CONTRIBUTING.md](CONTRIBUTING.md); the full guide lives in the [browsersmith repo](https://github.com/jverneuer/browsersmith/blob/main/CONTRIBUTING.md). First timer? Check the [`good first issue`](https://github.com/jverneuer/browsercore-crypto/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) label. Security issues: [SECURITY.md](SECURITY.md), never a public issue.
 
 ## License
 
