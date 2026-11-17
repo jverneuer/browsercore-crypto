@@ -2,8 +2,11 @@
  * The ML-KEM-768 backend contract (FIPS 203, formerly Kyber).
  *
  * Higher layers depend on this interface — never on a concrete implementation
- * — so the post-quantum KEM backend is replaceable (Node, WebCrypto, HSM, test
- * double). The implementation provides the three Key Encapsulation Mechanism
+ * — so the post-quantum KEM backend is replaceable by any *synchronous*
+ * implementation (noble, node:crypto, blocking HSM client, test double). The
+ * contract is sync by design, so async-native APIs (WebCrypto) cannot
+ * implement it — see the design-decisions note in @browsercore/contracts
+ * >= 0.2.6. The implementation provides the three Key Encapsulation Mechanism
  * primitives: key generation, encapsulation (client side), and decapsulation
  * (server side). All inputs and outputs are raw byte arrays matching the FIPS
  * 203 parameter-set sizes — no ASN.1/DER container encoding.

@@ -13,7 +13,9 @@ import { x25519 } from "@noble/curves/ed25519";
 /**
  * The X25519 backend contract. A backend provides raw scalar-multiplication
  * and Diffie-Hellman over curve25519 without coupling to any particular
- * crypto implementation (Node, WebCrypto, HSM). Implementations MUST clamp
+ * synchronous crypto implementation (noble, node:crypto, blocking HSM
+ * client). Async-native APIs (WebCrypto) cannot implement this sync
+ * contract. Implementations MUST clamp
  * the scalar per RFC 7748 §5 — but callers need not do so themselves.
  */
 export interface X25519Backend {

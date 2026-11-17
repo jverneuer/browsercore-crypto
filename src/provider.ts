@@ -20,7 +20,8 @@
  * `browsersmith/src/platform/crypto/node/` — this package exports only the
  * contract, types, errors, utilities, and the pure @noble backends. The
  * provider surface is synchronous by design; an async-only backend such as
- * WebCrypto cannot implement it.
+ * WebCrypto cannot implement it. The canonical rationale lives in
+ * @browsercore/contracts >= 0.2.6 (docs/design-decisions.md).
  *
  * @module
  * @since 0.1.0

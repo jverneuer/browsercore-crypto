@@ -5,11 +5,26 @@
 [![coverage](https://img.shields.io/endpoint?url=https://jverneuer.github.io/browsercore-crypto/badge.json)](https://github.com/jverneuer/browsercore-crypto/blob/main/COVERAGE.md)
 [![lint](https://img.shields.io/github/actions/workflow/status/jverneuer/browsercore-crypto/ci.yml?label=lint)](https://github.com/jverneuer/browsercore-crypto/actions/workflows/ci.yml)
 
-Cryptographic primitives for the browsercore stack: secure randomness, hashing
-(SHA-256/384), HKDF (RFC 5869), AEAD (AES-128-GCM, AES-256-GCM, ChaCha20-Poly1305),
-X25519 key exchange, and signature verification. Higher layers — especially TLS —
-compose exclusively through the `CryptoProvider` interface, so the backend is
-replaceable (WebCrypto, HSM, test double) and never calls `node:crypto` directly.
+The synchronous `CryptoProvider` contract, branded algorithm identifiers, typed
+errors, and pure-JavaScript key-exchange backends for the browsercore stack:
+X25519 and NIST-curve ECDH (`@noble/curves`) plus ML-KEM-768
+(`@noble/post-quantum`), covering the TLS 1.3 hybrid `X25519MLKEM768` group with
+zero `node:*` imports. Higher layers — especially TLS — compose exclusively
+through the `CryptoProvider` interface, never `node:crypto` directly.
+
+**The interface is synchronous by design.** Any *synchronous* backend can
+implement it: the pure-JS noble backends exported here, a `node:crypto` adapter,
+a blocking HSM client, or a wasm build with sync exports. Async-native APIs —
+WebCrypto (`SubtleCrypto`) above all — **cannot** implement it: a Promise-based
+API cannot be served from a sync method signature. The canonical rationale lives
+in the design-decisions note shipped with
+[`@browsercore/contracts` ≥ 0.2.6](https://github.com/jverneuer/browsercore-contracts/blob/main/docs/design-decisions.md).
+
+The concrete `node:crypto`-backed provider (randomness, hashing, HKDF, AEAD,
+signature verification) is wired in the
+[browsersmith](https://github.com/jverneuer/browsersmith) adapter
+(`src/platform/crypto/node/`); this package exports the contract, branded
+types, errors, DER helpers, and the noble backends.
 
 ## Install
 
@@ -20,38 +35,52 @@ npm install @browsercore/crypto
 ## Quick usage
 
 ```ts
-import { crypto, NodeCryptoProvider } from "@browsercore/crypto";
+import {
+    NobleX25519Backend,
+    NobleMlKem768Backend,
+    type CryptoProvider,
+} from "@browsercore/crypto";
 
-// Default singleton, backed by node:crypto:
-const key = crypto.randomBytes(32);
-const digest = crypto.sha256(key);
-const ok = crypto.verifySignature("ecdsa_secp256r1_sha256", pubkey, sig, message);
+// Pure-JS key exchange — sync by design, zero node:* imports:
+const x25519 = new NobleX25519Backend();
+const publicKey = x25519.publicKey(mySecretScalar);
+const sharedSecret = x25519.sharedSecret(mySecretScalar, peerPublicKey);
 
-// Or inject a custom provider (e.g. for tests):
-const provider = new NodeCryptoProvider();
-const shared = provider.x25519SharedSecret(mySecret, theirPublic);
+const mlkem = new NobleMlKem768Backend();
+const { ciphertext, sharedSecret: pqSecret } = mlkem.encapsulate(peerMlKemKey);
+
+// Higher layers depend on the sync contract only. Implement it with any
+// SYNC backend (e.g. browsersmith's node:crypto-backed provider, a test
+// double, a blocking HSM client) — never an async-native one like WebCrypto:
+const provider: CryptoProvider = mySyncProvider;
 ```
 
 ## Public API
 
 | Export | Kind | Purpose |
 | --- | --- | --- |
-| `crypto` | singleton | Default `CryptoProvider` backend |
-| `CryptoProvider` | interface | Pure crypto primitive abstraction higher layers depend on |
-| `NodeCryptoProvider` | class | `node:crypto`-backed implementation |
-| `aes128Gcm` / `aes256Gcm` / `chacha20Poly1305` | `AeadCipher` | Concrete AEAD descriptors (sizes + encrypt/decrypt) |
-| `CIPHER_BY_ID` | record | Every `SymmetricCipherId` mapped to its `AeadCipher` |
+| `CryptoProvider` | interface | Synchronous crypto-primitive abstraction (canonical type re-exported from `@browsercore/contracts`); async-native backends such as WebCrypto cannot implement it |
+| `NobleX25519Backend` | class | Pure-JS X25519 backend (`@noble/curves`) |
+| `NobleEcdhBackend` | class | Pure-JS NIST-curve ECDH backend, secp256r1/secp384r1 (`@noble/curves`) |
+| `NobleMlKem768Backend` | class | Pure-JS ML-KEM-768 backend, FIPS 203 (`@noble/post-quantum`) |
+| `X25519Backend` / `EcdhBackend` / `MlKem768Backend` | interfaces | Sync backend contracts the noble classes implement |
+| `rawPrivateToPkcs8` / `pkcs8ToRaw` / `rawPublicToSpki` / `spkiToRaw` | functions | X25519 DER container conversions (RFC 8410) |
+| `AES_128_GCM` / `AES_256_GCM` / `AES_128_CCM` / `CHACHA20_POLY1305` / `SHA_256` / `SHA_384` / `X25519` | constants | Branded canonical algorithm identifiers |
 | `ensureCryptoError()` | function | Narrow a caught error to a typed crypto error, or wrap it |
 | `createCryptoSessionId()` | function | Branded session-id generator |
 | `AeadCipher` | interface | Static AEAD parameters + encrypt/decrypt |
-| `SymmetricCipherId` | union | `AES-128-GCM \| AES-256-GCM \| ChaCha20-Poly1305` |
+| `SymmetricCipherId` | union | `AES-128-GCM \| AES-256-GCM \| AES-128-CCM \| ChaCha20-Poly1305` |
 | `HashId` | union | `SHA-256 \| SHA-384` |
 | `KeyExchangeId` | union | `X25519` |
+| `EcdhCurve` / `EcdhKeyPair` | union / interface | Named-curve ECDH identifiers and wire-layout key pair |
+| `MLKEM768KeyPair` / `MLKEM768Encapsulation` | interfaces | FIPS 203 key pair and encapsulation result |
+| `MLKEM768_*_LENGTH` | constants | FIPS 203 parameter-set byte sizes |
 | `CryptoSessionId` | branded type | Derived-session identifier |
 | `X25519KeyPair` | interface | X25519 public + secret key |
 | `CryptoError` | class | Base typed error (carries `algorithm` + `cause`) |
 | `UnsupportedAlgorithmError` | class | Requested algorithm not supported |
 | `DecryptError` | class | AEAD authentication failure |
+| `assertNever` / `createId` | functions | Shared exhaustiveness / id helpers |
 
 ## Development
 
