@@ -1,7 +1,7 @@
 {
     "name": "@browsercore/crypto",
-    "version": "0.2.6",
-    "description": "Clean abstraction wrapping Node's native crypto APIs. The TLS implementation calls these methods \u2014 never node:crypto directly \u2014 so the backend is replaceable.",
+    "version": "0.2.7",
+    "description": "Synchronous crypto-primitive contract plus pure-JS noble backends (X25519, NIST ECDH, ML-KEM-768). Sync by design \u2014 async-native WebCrypto cannot implement the interface.",
     "repository": {
         "type": "git",
         "url": "https://github.com/jverneuer/browsercore-crypto.git"

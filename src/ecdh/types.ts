@@ -2,8 +2,11 @@
  * The named-curve ECDH backend contract.
  *
  * Higher layers depend on this interface — never on a concrete implementation
- * — so the ECDH backend is replaceable (Node crypto, WebCrypto, HSM, test
- * double). The implementation is pure scalar multiplication over NIST
+ * — so the ECDH backend is replaceable by any *synchronous* implementation
+ * (noble, node:crypto, blocking HSM client, test double). The contract is
+ * sync by design, so async-native APIs (WebCrypto) cannot implement it — see
+ * the design-decisions note in @browsercore/contracts >= 0.2.6. The
+ * implementation is pure scalar multiplication over NIST
  * prime-order curves: derive the public point from a private scalar and
  * compute a Diffie-Hellman shared secret from a private scalar plus a peer's
  * public point. All inputs and outputs are raw byte arrays matching the
